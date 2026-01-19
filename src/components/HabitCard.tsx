@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { memo } from 'react';
 import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import { Habit } from '../core/types';
 
@@ -10,49 +10,49 @@ interface HabitCardProps {
     onDelete?: () => void;
 }
 
-// Large odometer digit with peek above and below (matching reference design)
-function OdometerDigit({ digit }: { digit: string }) {
+// Memoized odometer digit
+const OdometerDigit = memo(function OdometerDigit({ digit }: { digit: string }) {
     const prevDigit = digit === '0' ? '9' : String(Number(digit) - 1);
     const nextDigit = digit === '9' ? '0' : String(Number(digit) + 1);
 
     return (
-        <View className="items-center" style={{ width: 60 }}>
-            {/* Peek above - faded previous digit */}
+        <View style={{ alignItems: 'center', width: 55 }}>
             <Text
-                className="text-5xl font-bold"
                 style={{
-                    color: 'rgba(255, 255, 255, 0.15)',
+                    fontSize: 40,
+                    fontWeight: 'bold',
+                    color: 'rgba(255, 255, 255, 0.12)',
                     position: 'absolute',
-                    top: -40,
+                    top: -35,
                 }}
             >
                 {prevDigit}
             </Text>
-
-            {/* Main digit - large and prominent */}
             <Text
-                className="text-7xl font-bold"
-                style={{ color: 'white' }}
+                style={{
+                    fontSize: 64,
+                    fontWeight: 'bold',
+                    color: 'white',
+                }}
             >
                 {digit}
             </Text>
-
-            {/* Peek below - faded next digit */}
             <Text
-                className="text-5xl font-bold"
                 style={{
-                    color: 'rgba(255, 255, 255, 0.15)',
+                    fontSize: 40,
+                    fontWeight: 'bold',
+                    color: 'rgba(255, 255, 255, 0.12)',
                     position: 'absolute',
-                    bottom: -40,
+                    bottom: -35,
                 }}
             >
                 {nextDigit}
             </Text>
         </View>
     );
-}
+});
 
-export function HabitCard({ habit, longestStreak = 0, onEdit, onDelete }: HabitCardProps) {
+function HabitCardComponent({ habit, longestStreak = 0, onEdit, onDelete }: HabitCardProps) {
     const streakDigits = String(habit.streak).padStart(2, '0').split('');
 
     const handleDelete = () => {
@@ -68,69 +68,85 @@ export function HabitCard({ habit, longestStreak = 0, onEdit, onDelete }: HabitC
 
     return (
         <View
-            className="rounded-2xl p-5 mb-4 overflow-hidden"
             style={{
-                backgroundColor: '#1a1625',
+                backgroundColor: 'rgba(30, 20, 50, 0.7)',
                 borderWidth: 1,
                 borderColor: 'rgba(98, 54, 255, 0.3)',
+                borderRadius: 16,
+                padding: 20,
+                marginBottom: 16,
+                overflow: 'hidden',
             }}
         >
-            {/* Edit Goal Button */}
+            <View
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 60,
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                }}
+            />
+
             <TouchableOpacity
                 onPress={onEdit}
-                className="flex-row items-center mb-4"
+                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}
             >
-                <Ionicons name="pencil-outline" size={16} color="#9ca3af" />
-                <Text className="text-gray-400 text-xs ml-2 tracking-widest uppercase" style={{ color: '#9ca3af' }}>
+                <Ionicons name="pencil-outline" size={14} color="#9ca3af" />
+                <Text style={{ color: '#9ca3af', fontSize: 10, marginLeft: 8, letterSpacing: 2 }}>
                     EDIT GOAL
                 </Text>
             </TouchableOpacity>
 
-            {/* Main Content Row */}
-            <View className="flex-row">
-                {/* Left Side - Goal Info */}
-                <View className="flex-1 justify-between">
-                    <View className="mb-6">
-                        <Text className="text-gray-500 text-xs tracking-widest uppercase mb-1" style={{ color: '#6b7280' }}>
+            <View style={{ flexDirection: 'row' }}>
+                <View style={{ flex: 1, justifyContent: 'space-between' }}>
+                    <View style={{ marginBottom: 24 }}>
+                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 4 }}>
                             YOUR GOAL
                         </Text>
-                        <Text className="text-white text-lg font-bold" style={{ color: 'white' }}>
+                        <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>
                             {habit.name.toUpperCase()}
                         </Text>
                     </View>
 
-                    <View className="flex-row justify-between">
-                        <View>
-                            <Text className="text-gray-500 text-xs tracking-widest uppercase" style={{ color: '#6b7280' }}>
-                                LONGEST STREAK
-                            </Text>
-                            <Text className="text-white text-2xl font-bold" style={{ color: 'white' }}>
-                                {longestStreak || habit.streak}
-                            </Text>
-                        </View>
+                    <View>
+                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2 }}>
+                            LONGEST STREAK
+                        </Text>
+                        <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>
+                            {longestStreak || habit.streak}
+                        </Text>
                     </View>
                 </View>
 
-                {/* Right Side - Odometer */}
-                <View className="items-end justify-center" style={{ height: 120, overflow: 'hidden' }}>
-                    <View className="flex-row items-center">
+                <View style={{ alignItems: 'flex-end', justifyContent: 'center', height: 100, overflow: 'hidden' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         {streakDigits.map((digit, index) => (
                             <OdometerDigit key={`${index}-${digit}`} digit={digit} />
                         ))}
                     </View>
-                    <Text className="text-gray-500 text-xs tracking-widest uppercase mt-2" style={{ color: '#6b7280' }}>
+                    <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginTop: 4 }}>
                         CURRENT STREAK
                     </Text>
                 </View>
             </View>
 
-            {/* Delete Button */}
             <TouchableOpacity
                 onPress={handleDelete}
-                className="absolute top-4 right-4"
+                style={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    padding: 8,
+                    borderRadius: 8,
+                }}
             >
-                <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                <Ionicons name="trash-outline" size={16} color="#ef4444" />
             </TouchableOpacity>
         </View>
     );
 }
+
+export const HabitCard = memo(HabitCardComponent);

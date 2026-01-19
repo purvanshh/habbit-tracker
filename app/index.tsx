@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { eachDayOfInterval, endOfWeek, format, isToday, startOfWeek } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -8,7 +7,7 @@ import { DotGrid } from '../src/components/DotGrid';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
 import { HabitCard } from '../src/components/HabitCard';
 import { SwipeSlider } from '../src/components/SwipeSlider';
-import { getAllLogs, getLogsForHabit, isCompletedToday } from '../src/core/db';
+import { getLogsForHabit, isCompletedToday } from '../src/core/db';
 import { HabitLog } from '../src/core/types';
 import { useHabitStore } from '../src/store/useHabitStore';
 
@@ -20,11 +19,8 @@ export default function Dashboard() {
   const [currentLogs, setCurrentLogs] = useState<HabitLog[]>([]);
   const [completedToday, setCompletedToday] = useState(false);
   const [showCompletedMessage, setShowCompletedMessage] = useState(false);
-  const [allLogs, setAllLogs] = useState<HabitLog[]>([]);
 
-  // Effect to load logs when a habit is selected
   useEffect(() => {
-    getAllLogs().then(setAllLogs);
     if (selectedHabitId) {
       getLogsForHabit(selectedHabitId).then(setCurrentLogs);
       isCompletedToday(selectedHabitId).then(setCompletedToday);
@@ -32,21 +28,6 @@ export default function Dashboard() {
       setSelectedHabitId(habits[0].id);
     }
   }, [selectedHabitId, habits]);
-
-  // Mini calendar - current week
-  const today = new Date();
-  const weekStart = startOfWeek(today, { weekStartsOn: 0 });
-  const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-
-  const getCompletionCount = (date: Date) => {
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = dayStart.getTime() + 24 * 60 * 60 * 1000;
-    return allLogs.filter(
-      log => log.timestamp >= dayStart.getTime() && log.timestamp < dayEnd && log.status === 'completed'
-    ).length;
-  };
 
   if (isLoading) {
     return (
@@ -65,13 +46,31 @@ export default function Dashboard() {
       setCurrentLogs(updatedLogs);
       setCompletedToday(true);
       setShowCompletedMessage(true);
-      getAllLogs().then(setAllLogs);
-      // Auto-hide after 2 seconds
       setTimeout(() => {
         setShowCompletedMessage(false);
       }, 2000);
     }
   };
+
+  // Calculate stats
+  const totalStreaks = habits.reduce((acc, h) => acc + h.streak, 0);
+  const completedHabitsToday = habits.filter(h => {
+    const log = currentLogs.find(l => l.habitId === h.id);
+    return log?.status === 'completed';
+  }).length;
+
+  const GlassCard = ({ children, style }: { children: React.ReactNode; style?: any }) => (
+    <View
+      style={[{
+        backgroundColor: 'rgba(30, 30, 40, 0.6)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 16,
+      }, style]}
+    >
+      {children}
+    </View>
+  );
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -88,123 +87,125 @@ export default function Dashboard() {
       </View>
 
       {/* Main Content */}
-      <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 180 }}>
 
-        {/* Mini Week Calendar - Always visible */}
-        <TouchableOpacity
-          onPress={() => router.push('/calendar')}
-          className="bg-card rounded-2xl p-4 mb-4 border border-white/5"
-        >
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-white font-bold" style={{ color: 'white' }}>This Week</Text>
-            <Ionicons name="chevron-forward" size={20} color="#6b7280" />
-          </View>
-          <View className="flex-row justify-around">
-            {weekDays.map(day => {
-              const count = getCompletionCount(day);
-              const isCurrentDay = isToday(day);
-              return (
-                <View key={day.toISOString()} className="items-center">
-                  <Text className="text-gray-500 text-xs mb-1" style={{ color: '#6b7280' }}>
-                    {format(day, 'EEE')}
-                  </Text>
-                  <View
-                    className={`w-10 h-10 rounded-full items-center justify-center ${count > 0 ? 'bg-green-500/30' : 'bg-secondary'}`}
-                    style={isCurrentDay ? { borderWidth: 2, borderColor: '#6236FF' } : count > 0 ? { backgroundColor: 'rgba(34, 197, 94, 0.3)' } : { backgroundColor: '#2C2C2E' }}
-                  >
-                    <Text
-                      className={`text-sm ${isCurrentDay ? 'font-bold' : ''}`}
-                      style={{ color: count > 0 ? '#22c55e' : 'white' }}
-                    >
-                      {format(day, 'd')}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        </TouchableOpacity>
+        {/* Quick Stats Row */}
+        <View className="flex-row gap-3 mb-4">
+          <GlassCard style={{ flex: 1, padding: 16 }}>
+            <View className="flex-row items-center">
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(98, 54, 255, 0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                <Ionicons name="flame" size={20} color="#6236FF" />
+              </View>
+              <View>
+                <Text style={{ color: '#9ca3af', fontSize: 10, letterSpacing: 1 }}>TOTAL STREAKS</Text>
+                <Text style={{ color: '#6236FF', fontSize: 24, fontWeight: 'bold' }}>{totalStreaks}</Text>
+              </View>
+            </View>
+          </GlassCard>
+          <GlassCard style={{ flex: 1, padding: 16 }}>
+            <View className="flex-row items-center">
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(34, 197, 94, 0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
+              </View>
+              <View>
+                <Text style={{ color: '#9ca3af', fontSize: 10, letterSpacing: 1 }}>ACTIVE HABITS</Text>
+                <Text style={{ color: '#22c55e', fontSize: 24, fontWeight: 'bold' }}>{habits.length}</Text>
+              </View>
+            </View>
+          </GlassCard>
+        </View>
 
         {/* Habit Selector (Horizontal List) */}
         {habits.length > 0 ? (
           <View>
-            <Text className="text-white font-bold mb-2" style={{ color: 'white' }}>Your Habits</Text>
+            <Text style={{ color: 'white', fontWeight: 'bold', marginBottom: 8 }}>Your Habits</Text>
             <FlatList
               data={habits}
               horizontal
               showsHorizontalScrollIndicator={false}
               keyExtractor={h => h.id}
-              className="py-2"
+              style={{ marginBottom: 16 }}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   onPress={() => setSelectedHabitId(item.id)}
-                  className={`mr-3 px-4 py-3 rounded-xl border ${selectedHabitId === item.id ? 'border-primary' : 'border-white/10 bg-card'}`}
-                  style={selectedHabitId === item.id ? { backgroundColor: 'rgba(98, 54, 255, 0.1)', borderColor: '#6236FF' } : {}}
+                  style={{
+                    marginRight: 10,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    backgroundColor: selectedHabitId === item.id ? 'rgba(98, 54, 255, 0.15)' : 'rgba(30, 30, 40, 0.6)',
+                    borderWidth: 1,
+                    borderColor: selectedHabitId === item.id ? '#6236FF' : 'rgba(255, 255, 255, 0.1)',
+                  }}
                 >
-                  <Text style={{ color: selectedHabitId === item.id ? '#6236FF' : '#9ca3af' }}>{item.name}</Text>
+                  <Text style={{ color: selectedHabitId === item.id ? '#6236FF' : '#9ca3af', fontWeight: selectedHabitId === item.id ? 'bold' : 'normal' }}>
+                    {item.name}
+                  </Text>
                 </TouchableOpacity>
               )}
             />
 
             {selectedHabit && (
               <>
-                <View className="mt-4">
-                  <HabitCard
-                    habit={selectedHabit}
-                    onDelete={() => {
-                      removeHabit(selectedHabit.id);
-                      if (habits.length > 1) {
-                        setSelectedHabitId(habits.find(h => h.id !== selectedHabit.id)?.id || null);
-                      } else {
-                        setSelectedHabitId(null);
-                      }
-                    }}
-                  />
-                </View>
+                <HabitCard
+                  habit={selectedHabit}
+                  onDelete={() => {
+                    removeHabit(selectedHabit.id);
+                    if (habits.length > 1) {
+                      setSelectedHabitId(habits.find(h => h.id !== selectedHabit.id)?.id || null);
+                    } else {
+                      setSelectedHabitId(null);
+                    }
+                  }}
+                />
 
-                <View className="mt-4">
+                {/* History Dot Grid */}
+                <View style={{ marginTop: 16 }}>
                   <DotGrid logs={currentLogs} />
                 </View>
 
                 {/* Suggestions / Alerts */}
                 {suggestions.find(s => s.habitId === selectedHabit.id) && (
-                  <View className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                    <Text className="text-yellow-500 font-bold mb-1" style={{ color: '#eab308' }}>Suggestion Available</Text>
-                    <Text className="text-gray-300 text-xs" style={{ color: '#d1d5db' }}>
+                  <GlassCard style={{ padding: 16, borderLeftWidth: 3, borderLeftColor: '#eab308' }}>
+                    <Text style={{ color: '#eab308', fontWeight: 'bold', marginBottom: 4 }}>Suggestion</Text>
+                    <Text style={{ color: '#d1d5db', fontSize: 13 }}>
                       {suggestions.find(s => s.habitId === selectedHabit.id)?.reason}
                     </Text>
-                    <Text className="text-gray-300 text-xs italic mt-2" style={{ color: '#d1d5db' }}>
+                    <Text style={{ color: '#9ca3af', fontSize: 12, fontStyle: 'italic', marginTop: 8 }}>
                       {suggestions.find(s => s.habitId === selectedHabit.id)?.suggestedAction}
                     </Text>
-                  </View>
+                  </GlassCard>
                 )}
               </>
             )}
           </View>
         ) : (
-          <View className="items-center justify-center py-12">
-            <Ionicons name="add-circle-outline" size={64} color="#6b7280" />
-            <Text className="text-gray-500 mt-4 text-center" style={{ color: '#6b7280' }}>
-              No habits tracked yet.{'\n'}Tap + to create your first habit!
+          <GlassCard style={{ padding: 40, alignItems: 'center' }}>
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(98, 54, 255, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Ionicons name="add" size={40} color="#6236FF" />
+            </View>
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>No habits yet</Text>
+            <Text style={{ color: '#9ca3af', textAlign: 'center' }}>
+              Tap the + button below to create your first habit and start building streaks!
             </Text>
-          </View>
+          </GlassCard>
         )}
 
       </ScrollView>
 
       {/* Footer Slider - Only show if habit selected and not completed today */}
       {selectedHabit && !completedToday && (
-        <View className="absolute bottom-24 left-0 right-0 px-4">
+        <View style={{ position: 'absolute', bottom: 110, left: 0, right: 0, paddingHorizontal: 16 }}>
           <SwipeSlider onComplete={handleComplete} />
         </View>
       )}
 
       {/* Completed Message - Auto-hides after 2 seconds */}
       {showCompletedMessage && (
-        <View className="absolute bottom-24 left-0 right-0 px-4 items-center">
-          <View className="bg-green-500/20 border border-green-500/30 rounded-full px-6 py-3 flex-row items-center">
+        <View style={{ position: 'absolute', bottom: 110, left: 0, right: 0, paddingHorizontal: 16, alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'rgba(34, 197, 94, 0.2)', borderWidth: 1, borderColor: 'rgba(34, 197, 94, 0.3)', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' }}>
             <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-            <Text className="ml-2 font-bold" style={{ color: '#22c55e' }}>Completed Today!</Text>
+            <Text style={{ color: '#22c55e', marginLeft: 8, fontWeight: 'bold' }}>Completed Today!</Text>
           </View>
         </View>
       )}

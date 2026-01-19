@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import React, { useRef, useState } from 'react';
+import React, { memo } from 'react';
 import { Dimensions, Text, View } from 'react-native';
-import ConfettiCannon from 'react-native-confetti-cannon';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
     Extrapolate,
@@ -19,24 +18,18 @@ interface SwipeSliderProps {
     onComplete: () => void;
 }
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BUTTON_HEIGHT = 60;
-const BUTTON_WIDTH = Dimensions.get('window').width - 48; // Padding
+const BUTTON_WIDTH = SCREEN_WIDTH - 48;
 const SWIPE_THRESHOLD = BUTTON_WIDTH * 0.7;
 
-export function SwipeSlider({ onComplete }: SwipeSliderProps) {
+function SwipeSliderComponent({ onComplete }: SwipeSliderProps) {
     const translateX = useSharedValue(0);
     const completed = useSharedValue(false);
     const startX = useSharedValue(0);
-    const [showConfetti, setShowConfetti] = useState(false);
-    const confettiRef = useRef<ConfettiCannon>(null);
 
-    const triggerCelebration = () => {
+    const triggerHaptic = () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setShowConfetti(true);
-        // Reset slider after a short delay
-        setTimeout(() => {
-            setShowConfetti(false);
-        }, 2500);
     };
 
     const resetSlider = () => {
@@ -51,7 +44,6 @@ export function SwipeSlider({ onComplete }: SwipeSliderProps) {
         .onUpdate((event) => {
             if (completed.value) return;
             const nextX = startX.value + event.translationX;
-            // Clamp between 0 and max width
             translateX.value = Math.max(0, Math.min(nextX, BUTTON_WIDTH - BUTTON_HEIGHT));
         })
         .onEnd(() => {
@@ -61,7 +53,7 @@ export function SwipeSlider({ onComplete }: SwipeSliderProps) {
                 translateX.value = withSpring(BUTTON_WIDTH - BUTTON_HEIGHT);
                 completed.value = true;
                 runOnJS(onComplete)();
-                runOnJS(triggerCelebration)();
+                runOnJS(triggerHaptic)();
                 runOnJS(resetSlider)();
             } else {
                 translateX.value = withSpring(0);
@@ -86,39 +78,51 @@ export function SwipeSlider({ onComplete }: SwipeSliderProps) {
     });
 
     return (
-        <View className="items-center justify-center py-4">
+        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
             <View
-                className="bg-card border border-white/10 rounded-full justify-center"
-                style={{ width: BUTTON_WIDTH, height: BUTTON_HEIGHT }}
+                style={{
+                    width: BUTTON_WIDTH,
+                    height: BUTTON_HEIGHT,
+                    borderRadius: 30,
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(30, 30, 40, 0.9)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                }}
             >
-                <Animated.View style={textStyle} className="absolute w-full items-center">
-                    <Text className="text-gray-400 font-sans tracking-[4px] text-xs font-bold uppercase" style={{ color: '#9ca3af' }}>
+                <Animated.View style={[textStyle, { position: 'absolute', width: '100%', alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }]}>
+                    <Text style={{ color: '#6b7280', fontSize: 11, fontWeight: 'bold', letterSpacing: 3, marginRight: 8 }}>
                         Swipe to Complete
                     </Text>
+                    <Ionicons name="chevron-forward" size={16} color="#6b7280" />
                 </Animated.View>
 
                 <GestureDetector gesture={panGesture}>
                     <Animated.View
-                        className="bg-primary h-[50px] w-[50px] rounded-full items-center justify-center absolute left-[5px]"
-                        style={knobStyle}
+                        style={[
+                            knobStyle,
+                            {
+                                position: 'absolute',
+                                left: 5,
+                                width: 50,
+                                height: 50,
+                                borderRadius: 25,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: '#6236FF',
+                                shadowColor: '#6236FF',
+                                shadowOffset: { width: 0, height: 0 },
+                                shadowOpacity: 0.5,
+                                shadowRadius: 10,
+                            }
+                        ]}
                     >
                         <Ionicons name="checkmark" size={24} color="white" />
                     </Animated.View>
                 </GestureDetector>
             </View>
-
-            {showConfetti && (
-                <ConfettiCannon
-                    ref={confettiRef}
-                    count={80}
-                    origin={{ x: BUTTON_WIDTH / 2, y: 0 }}
-                    autoStart={true}
-                    fadeOut={true}
-                    fallSpeed={3000}
-                    explosionSpeed={350}
-                    colors={['#6236FF', '#22c55e', '#eab308', '#ec4899', '#3b82f6']}
-                />
-            )}
         </View>
     );
 }
+
+export const SwipeSlider = memo(SwipeSliderComponent);

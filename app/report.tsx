@@ -23,7 +23,19 @@ export default function WeeklyReport() {
         getAllLogs().then(setAllLogs).catch(() => setAllLogs([]));
     }, []);
 
-    // Generate chart data - Week view only (removed month view)
+    const GlassCard = ({ children, style }: { children: React.ReactNode; style?: any }) => (
+        <View
+            style={[{
+                backgroundColor: 'rgba(30, 30, 40, 0.6)',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 16,
+            }, style]}
+        >
+            {children}
+        </View>
+    );
+
     const generateChartData = () => {
         const now = new Date();
         const days = 7;
@@ -39,7 +51,6 @@ export default function WeeklyReport() {
 
             labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
 
-            // Count completions for this day
             const dayCompletions = allLogs.filter(
                 log => log.timestamp >= startOfDay &&
                     log.timestamp < endOfDay &&
@@ -53,7 +64,6 @@ export default function WeeklyReport() {
 
     const { labels, completions } = generateChartData();
 
-    // Ensure we have valid data for chart (at least some non-zero or default)
     const chartData = {
         labels,
         datasets: [
@@ -67,8 +77,8 @@ export default function WeeklyReport() {
     };
 
     const chartConfig = {
-        backgroundGradientFrom: '#1A1A1A',
-        backgroundGradientTo: '#1A1A1A',
+        backgroundGradientFrom: 'rgba(30, 30, 40, 0.8)',
+        backgroundGradientTo: 'rgba(30, 30, 40, 0.8)',
         decimalPlaces: 0,
         color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
         labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
@@ -95,91 +105,91 @@ export default function WeeklyReport() {
 
             <ScrollView className="px-4" contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Summary Card */}
-                <View className="bg-card p-6 rounded-2xl mb-6 border border-white/5">
-                    <Text className="text-gray-400 text-xs font-sans tracking-widest uppercase mb-2" style={{ color: '#9ca3af' }}>
-                        Total Streaks
+                <GlassCard style={{ padding: 24, marginBottom: 16 }}>
+                    <Text style={{ color: '#9ca3af', fontSize: 10, letterSpacing: 2, marginBottom: 4 }}>
+                        TOTAL STREAKS
                     </Text>
-                    <Text className="text-primary text-5xl font-hero" style={{ color: '#6236FF' }}>
+                    <Text style={{ color: '#6236FF', fontSize: 48, fontWeight: 'bold' }}>
                         {totalStreak}
                     </Text>
-                </View>
+                </GlassCard>
 
-                {/* Chart Section - Week View Only */}
-                <View className="mb-6">
-                    <Text className="text-white text-lg font-bold mb-4" style={{ color: 'white' }}>This Week</Text>
-
-                    <View className="bg-card rounded-2xl p-4 border border-white/5">
-                        <LineChart
-                            data={chartData}
-                            width={screenWidth - 32}
-                            height={200}
-                            chartConfig={chartConfig}
-                            bezier
-                            style={{
-                                borderRadius: 16,
-                            }}
-                            fromZero
-                        />
-                    </View>
-                </View>
+                {/* Chart Section */}
+                <GlassCard style={{ padding: 16, marginBottom: 16 }}>
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>This Week</Text>
+                    <LineChart
+                        data={chartData}
+                        width={screenWidth - 64}
+                        height={180}
+                        chartConfig={chartConfig}
+                        bezier
+                        style={{
+                            borderRadius: 12,
+                        }}
+                        fromZero
+                    />
+                </GlassCard>
 
                 {/* Per-Habit Stats */}
-                <View className="mb-6">
-                    <Text className="text-white text-lg font-bold mb-4" style={{ color: 'white' }}>Per Habit Breakdown</Text>
-                    {habits.map(habit => {
-                        const habitLogs = allLogs.filter(l => l.habitId === habit.id && l.status === 'completed');
-                        const weeklyCompletions = habitLogs.filter(l => {
-                            const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                            return l.timestamp >= weekAgo;
-                        }).length;
-                        const completionRate = Math.round((weeklyCompletions / 7) * 100);
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>Per Habit Breakdown</Text>
+                {habits.map(habit => {
+                    const habitLogs = allLogs.filter(l => l.habitId === habit.id && l.status === 'completed');
+                    const weeklyCompletions = habitLogs.filter(l => {
+                        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                        return l.timestamp >= weekAgo;
+                    }).length;
+                    const completionRate = Math.round((weeklyCompletions / 7) * 100);
 
-                        return (
-                            <View key={habit.id} className="bg-card p-4 rounded-xl mb-3 border border-white/5">
-                                <View className="flex-row justify-between items-center">
-                                    <Text className="text-white font-bold" style={{ color: 'white' }}>{habit.name}</Text>
-                                    <Text className="text-primary font-bold" style={{ color: '#6236FF' }}>{habit.streak} 🔥</Text>
-                                </View>
-                                <View className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
-                                    <View
-                                        className="h-full bg-primary rounded-full"
-                                        style={{ width: `${Math.min(completionRate, 100)}%`, backgroundColor: '#6236FF' }}
-                                    />
-                                </View>
-                                <Text className="text-gray-400 text-xs mt-1" style={{ color: '#9ca3af' }}>
-                                    {weeklyCompletions}/7 days this week ({completionRate}%)
-                                </Text>
+                    return (
+                        <GlassCard key={habit.id} style={{ padding: 16, marginBottom: 12 }}>
+                            <View className="flex-row justify-between items-center">
+                                <Text style={{ color: 'white', fontWeight: 'bold' }}>{habit.name}</Text>
+                                <Text style={{ color: '#6236FF', fontWeight: 'bold' }}>{habit.streak} 🔥</Text>
                             </View>
-                        );
-                    })}
-                </View>
+                            <View style={{ marginTop: 12, height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                                <View
+                                    style={{
+                                        height: '100%',
+                                        width: `${Math.min(completionRate, 100)}%`,
+                                        backgroundColor: '#6236FF',
+                                        borderRadius: 3,
+                                    }}
+                                />
+                            </View>
+                            <Text style={{ color: '#9ca3af', fontSize: 12, marginTop: 6 }}>
+                                {weeklyCompletions}/7 days this week ({completionRate}%)
+                            </Text>
+                        </GlassCard>
+                    );
+                })}
 
-                {/* Adaptive Suggestions */}
-                <View className="mb-6">
-                    <Text className="text-white text-lg font-bold mb-4" style={{ color: 'white' }}>Suggestions</Text>
-
-                    {suggestions.length > 0 ? (
-                        suggestions.map((s, i) => {
+                {/* Suggestions */}
+                {suggestions.length > 0 && (
+                    <>
+                        <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', marginTop: 8, marginBottom: 12 }}>Suggestions</Text>
+                        {suggestions.map((s, i) => {
                             const habitName = habits.find(h => h.id === s.habitId)?.name || 'Unknown';
                             return (
-                                <View key={i} className="bg-card p-4 rounded-xl mb-3 border-l-4 border-yellow-500">
-                                    <Text className="text-white font-bold text-base mb-1" style={{ color: 'white' }}>{habitName}</Text>
-                                    <Text className="text-gray-400 text-sm mb-2" style={{ color: '#9ca3af' }}>{s.reason}</Text>
-                                    <View className="bg-yellow-500/10 p-2 rounded">
-                                        <Text className="text-gray-300 text-sm italic" style={{ color: '#d1d5db' }}>{s.suggestedAction}</Text>
+                                <GlassCard key={i} style={{ padding: 16, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#eab308' }}>
+                                    <Text style={{ color: 'white', fontWeight: 'bold', marginBottom: 4 }}>{habitName}</Text>
+                                    <Text style={{ color: '#9ca3af', fontSize: 13, marginBottom: 8 }}>{s.reason}</Text>
+                                    <View style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)', padding: 8, borderRadius: 8 }}>
+                                        <Text style={{ color: '#d1d5db', fontSize: 13, fontStyle: 'italic' }}>{s.suggestedAction}</Text>
                                     </View>
-                                </View>
+                                </GlassCard>
                             );
-                        })
-                    ) : (
-                        <View className="bg-card p-6 rounded-xl border border-white/5 items-center">
-                            <Ionicons name="checkmark-circle" size={48} color="#22c55e" />
-                            <Text className="text-gray-400 mt-2 text-center" style={{ color: '#9ca3af' }}>
-                                All habits on track!
-                            </Text>
-                        </View>
-                    )}
-                </View>
+                        })}
+                    </>
+                )}
+
+                {suggestions.length === 0 && (
+                    <GlassCard style={{ padding: 24, alignItems: 'center' }}>
+                        <Ionicons name="checkmark-circle" size={48} color="#22c55e" />
+                        <Text style={{ color: '#9ca3af', marginTop: 8, textAlign: 'center' }}>
+                            All habits on track!
+                        </Text>
+                    </GlassCard>
+                )}
             </ScrollView>
 
             <FloatingTabBar onAddPress={() => router.push('/create')} />

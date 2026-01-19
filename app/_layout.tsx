@@ -5,12 +5,27 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../global.css';
 import { useHabitStore } from '../src/store/useHabitStore';
-// Import NativeWind global css if needed, but we used standard className
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 2,
+    },
+  },
+});
+
+// Smooth fade animation config
+const screenOptions = {
+  headerShown: false,
+  contentStyle: { backgroundColor: '#0A0A0A' },
+  animation: 'fade' as const,
+  animationDuration: 200,
+};
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -19,30 +34,32 @@ export default function RootLayout() {
     'BebasNeue_Regular': BebasNeue_400Regular,
   });
 
-  // Actually, standard practice for "Senior React Native Developer" is to use @expo-google-fonts
-  // I didn't install them. I'll check if I can use them or if I should just mock them for now.
-  // I'll skip the font loading check for now to avoid crashing, and just use system fonts if needed, 
-  // but I'll write the code as if they are there or use a safe approach.
-  // Better: Use `expo-font` with HTTP URLs? No, needs to be downloaded.
-  // I'll stick to 'System' for safety if I can't download them efficiently in this turn, OR I'll proceed with the assumption they are available or I'll just use system fonts.
-  // "Use 'Inter' for body... and 'Bebas Neue'..." - I'll try to use them in the styles but not block rendering.
-
   const initializeStore = useHabitStore(s => s.initialize);
 
   useEffect(() => {
     initializeStore();
-  }, []);
+  }, [initializeStore]);
+
+  // Keep screen dark while loading
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0A0A0A' }} />
+    );
+  }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
-        <Stack screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: '#000000' }
-        }}>
+        <Stack screenOptions={screenOptions}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="create" options={{ presentation: 'modal' }} />
+          <Stack.Screen
+            name="create"
+            options={{
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+            }}
+          />
           <Stack.Screen name="report" />
           <Stack.Screen name="calendar" />
           <Stack.Screen name="profile" />
