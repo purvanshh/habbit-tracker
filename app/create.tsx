@@ -8,18 +8,34 @@ import { FloatingTabBar } from '../src/components/FloatingTabBar';
 import { Frequency } from '../src/core/types';
 import { useHabitStore } from '../src/store/useHabitStore';
 
+const HABIT_ICONS = [
+    { name: 'barbell', label: 'Gym' },
+    { name: 'water', label: 'Water' },
+    { name: 'book', label: 'Reading' },
+    { name: 'bed', label: 'Sleep' },
+    { name: 'walk', label: 'Walk' },
+    { name: 'bicycle', label: 'Cycling' },
+    { name: 'musical-notes', label: 'Music' },
+    { name: 'code-slash', label: 'Coding' },
+    { name: 'restaurant', label: 'Eating' },
+    { name: 'leaf', label: 'Health' },
+    { name: 'body', label: 'Stretch' },
+    { name: 'flash', label: 'Energy' },
+];
+
 export default function CreateHabit() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const addHabit = useHabitStore(s => s.addHabit);
     const [name, setName] = useState('');
+    const [icon, setIcon] = useState('barbell');
     const [frequency, setFrequency] = useState<Frequency>('daily');
     const [effort, setEffort] = useState(1);
     const [timeWindow, setTimeWindow] = useState('morning');
 
     const handleCreate = async () => {
         if (!name.trim()) { Alert.alert('Error', 'Please enter a habit name'); return; }
-        await addHabit(name, frequency, effort, timeWindow);
+        await addHabit(name, icon, frequency, effort, timeWindow);
         router.back();
     };
 
@@ -33,6 +49,29 @@ export default function CreateHabit() {
             </View>
 
             <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
+                {/* Icon Selection */}
+                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                    <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>CHOOSE ICON</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                        {HABIT_ICONS.map((item) => (
+                            <TouchableOpacity
+                                key={item.name}
+                                onPress={() => setIcon(item.name)}
+                                style={{
+                                    width: 50, height: 50, borderRadius: 25,
+                                    alignItems: 'center', justifyContent: 'center',
+                                    backgroundColor: icon === item.name ? 'rgba(0, 255, 255, 0.15)' : '#1a1a1a',
+                                    borderWidth: icon === item.name ? 2 : 1,
+                                    borderColor: icon === item.name ? '#00FFFF' : '#333',
+                                }}
+                            >
+                                <Ionicons name={item.name as any} size={22} color={icon === item.name ? '#00FFFF' : '#9ca3af'} />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                {/* Name Input */}
                 <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>HABIT NAME</Text>
                     <TextInput
@@ -44,6 +83,7 @@ export default function CreateHabit() {
                     />
                 </View>
 
+                {/* Frequency */}
                 <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>FREQUENCY</Text>
                     <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -55,6 +95,7 @@ export default function CreateHabit() {
                     </View>
                 </View>
 
+                {/* Effort Rating */}
                 <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>EFFORT RATING</Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -66,6 +107,7 @@ export default function CreateHabit() {
                     </View>
                 </View>
 
+                {/* Time Window */}
                 <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 24 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>TIME WINDOW</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -77,6 +119,7 @@ export default function CreateHabit() {
                     </View>
                 </View>
 
+                {/* Create Button */}
                 <TouchableOpacity onPress={handleCreate}>
                     <LinearGradient colors={['#00FFFF', '#FF00FF'] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ padding: 18, borderRadius: 16, alignItems: 'center' }}>
                         <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>CREATE HABIT</Text>

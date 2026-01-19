@@ -14,7 +14,7 @@ import { useHabitStore } from '../src/store/useHabitStore';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Circular progress component with gradient
-function CircularProgress({ progress, size = 180 }: { progress: number; size?: number }) {
+function CircularProgress({ progress, size = 180, icon = 'barbell' }: { progress: number; size?: number; icon?: string }) {
     const strokeWidth = 8;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
@@ -29,43 +29,11 @@ function CircularProgress({ progress, size = 180 }: { progress: number; size?: n
                         <Stop offset="100%" stopColor="#FF00FF" />
                     </SvgGradient>
                 </Defs>
-                {/* Background circle */}
-                <Circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    stroke="rgba(255, 255, 255, 0.1)"
-                    strokeWidth={strokeWidth}
-                    fill="transparent"
-                />
-                {/* Progress circle */}
-                <Circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    stroke="url(#progressGradient)"
-                    strokeWidth={strokeWidth}
-                    fill="transparent"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                />
+                <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255, 255, 255, 0.1)" strokeWidth={strokeWidth} fill="transparent" />
+                <Circle cx={size / 2} cy={size / 2} r={radius} stroke="url(#progressGradient)" strokeWidth={strokeWidth} fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
             </Svg>
-            {/* Inner dark circle with icon */}
-            <View
-                style={{
-                    position: 'absolute',
-                    width: size - 40,
-                    height: size - 40,
-                    borderRadius: (size - 40) / 2,
-                    backgroundColor: '#1a1a2e',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderWidth: 2,
-                    borderColor: 'rgba(255, 255, 255, 0.05)',
-                }}
-            >
-                <Ionicons name="water" size={40} color="#00FFFF" />
+            <View style={{ position: 'absolute', width: size - 40, height: size - 40, borderRadius: (size - 40) / 2, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#222' }}>
+                <Ionicons name={icon as any} size={40} color="#00FFFF" />
             </View>
         </View>
     );
@@ -210,7 +178,7 @@ export default function StatisticsScreen() {
 
                 {/* Circular Progress */}
                 <View style={{ alignItems: 'center', marginBottom: 24 }}>
-                    <CircularProgress progress={progress} size={180} />
+                    <CircularProgress progress={progress} size={180} icon={selectedHabit?.icon || 'barbell'} />
                 </View>
 
                 {/* Habit Name */}
@@ -248,10 +216,10 @@ export default function StatisticsScreen() {
                     </ScrollView>
                 )}
 
-                {/* Intake History */}
+                {/* Weekly Progress */}
                 <View style={{ paddingHorizontal: 24 }}>
                     <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 24 }}>
-                        Intake history
+                        Weekly progress
                     </Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         {weekDays.map((day, index) => (

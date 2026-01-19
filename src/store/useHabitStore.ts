@@ -9,7 +9,7 @@ interface HabitState {
     suggestions: AdjustmentSuggestion[];
 
     initialize: () => Promise<void>;
-    addHabit: (name: string, frequency: Frequency, effort: number, timeWindow: string) => Promise<void>;
+    addHabit: (name: string, icon: string, frequency: Frequency, effort: number, timeWindow: string) => Promise<void>;
     removeHabit: (habitId: string) => Promise<void>;
     logHabit: (habitId: string, status: 'completed' | 'skipped' | 'failed') => Promise<void>;
     refreshSuggestions: () => Promise<void>;
@@ -31,10 +31,11 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         }
     },
 
-    addHabit: async (name, frequency, effort, timeWindow) => {
+    addHabit: async (name, icon, frequency, effort, timeWindow) => {
         const newHabit: Habit = {
             id: Date.now().toString(36) + Math.random().toString(36).substr(2),
             name,
+            icon,
             frequency,
             effortRating: effort,
             createdAt: Date.now(),
