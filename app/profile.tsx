@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Stop, LinearGradient as SvgGradient } from 'react-native-svg';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
@@ -43,29 +44,29 @@ export default function Profile() {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
-            <View style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
+            <Animated.View entering={FadeInDown.duration(400)} style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
                 <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>Profile</Text>
-            </View>
+            </Animated.View>
 
             <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Profile Header */}
-                <View style={{ backgroundColor: '#111', borderRadius: 20, padding: 32, alignItems: 'center', marginBottom: 24 }}>
+                <Animated.View entering={FadeInDown.delay(100).duration(400)} style={{ backgroundColor: '#111', borderRadius: 20, padding: 32, alignItems: 'center', marginBottom: 24 }}>
                     <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 2, borderColor: '#00FFFF' }}>
                         <Ionicons name="person" size={40} color="#00FFFF" />
                     </View>
                     <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>Habit Master</Text>
                     <Text style={{ color: '#6b7280', fontSize: 14 }}>Building better habits daily</Text>
-                </View>
+                </Animated.View>
 
                 {/* Stats */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24 }}>
+                <Animated.View entering={FadeInUp.delay(150).duration(400)} style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24 }}>
                     <CircularStat value={habits.length} maxValue={10} label="HABITS" color="cyan" />
                     <CircularStat value={totalStreak} maxValue={100} label="STREAKS" color="magenta" />
                     <CircularStat value={maxStreak} maxValue={30} label="BEST" color="cyan" />
-                </View>
+                </Animated.View>
 
                 {/* Settings */}
-                <View style={{ backgroundColor: '#111', borderRadius: 16, overflow: 'hidden' }}>
+                <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, overflow: 'hidden' }}>
                     {[
                         { icon: 'notifications', label: 'Notifications', color: '#00FFFF' },
                         { icon: 'moon', label: 'Dark Mode', color: '#FF00FF' },
@@ -78,7 +79,7 @@ export default function Profile() {
                             <Ionicons name="chevron-forward" size={18} color="#6b7280" />
                         </TouchableOpacity>
                     ))}
-                </View>
+                </Animated.View>
             </ScrollView>
 
             <FloatingTabBar onAddPress={() => router.push('/create')} />

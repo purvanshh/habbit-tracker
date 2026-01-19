@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
 import { Frequency } from '../src/core/types';
@@ -41,16 +42,16 @@ export default function CreateHabit() {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16 }}>
+            <Animated.View entering={FadeInDown.duration(400)} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16 }}>
                 <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
                     <Ionicons name="close" size={24} color="white" />
                 </TouchableOpacity>
                 <Text style={{ color: 'white', fontSize: 22, fontWeight: 'bold' }}>New Habit</Text>
-            </View>
+            </Animated.View>
 
             <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Icon Selection */}
-                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                <Animated.View entering={FadeInDown.delay(100).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>CHOOSE ICON</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                         {HABIT_ICONS.map((item) => (
@@ -69,10 +70,10 @@ export default function CreateHabit() {
                             </TouchableOpacity>
                         ))}
                     </View>
-                </View>
+                </Animated.View>
 
                 {/* Name Input */}
-                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                <Animated.View entering={FadeInDown.delay(150).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>HABIT NAME</Text>
                     <TextInput
                         style={{ backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#333', borderRadius: 12, padding: 16, color: 'white', fontSize: 16 }}
@@ -81,10 +82,10 @@ export default function CreateHabit() {
                         value={name}
                         onChangeText={setName}
                     />
-                </View>
+                </Animated.View>
 
                 {/* Frequency */}
-                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                <Animated.View entering={FadeInDown.delay(200).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>FREQUENCY</Text>
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                         {['daily', 'weekdays', 'weekly'].map((f) => (
@@ -93,10 +94,10 @@ export default function CreateHabit() {
                             </TouchableOpacity>
                         ))}
                     </View>
-                </View>
+                </Animated.View>
 
                 {/* Effort Rating */}
-                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                <Animated.View entering={FadeInUp.delay(250).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>EFFORT RATING</Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         {[1, 2, 3, 4, 5].map((r) => (
@@ -105,10 +106,10 @@ export default function CreateHabit() {
                             </TouchableOpacity>
                         ))}
                     </View>
-                </View>
+                </Animated.View>
 
                 {/* Time Window */}
-                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+                <Animated.View entering={FadeInUp.delay(300).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 24 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>TIME WINDOW</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                         {['morning', 'afternoon', 'evening', 'anytime'].map((t) => (
@@ -117,14 +118,16 @@ export default function CreateHabit() {
                             </TouchableOpacity>
                         ))}
                     </View>
-                </View>
+                </Animated.View>
 
                 {/* Create Button */}
-                <TouchableOpacity onPress={handleCreate}>
-                    <LinearGradient colors={['#00FFFF', '#FF00FF'] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ padding: 18, borderRadius: 16, alignItems: 'center' }}>
-                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>CREATE HABIT</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
+                <Animated.View entering={FadeInUp.delay(350).duration(400)}>
+                    <TouchableOpacity onPress={handleCreate}>
+                        <LinearGradient colors={['#00FFFF', '#FF00FF'] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ padding: 18, borderRadius: 16, alignItems: 'center' }}>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>CREATE HABIT</Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </Animated.View>
             </ScrollView>
 
             <FloatingTabBar onAddPress={() => { }} />

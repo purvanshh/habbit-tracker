@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DotGrid } from '../src/components/DotGrid';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
@@ -10,6 +11,8 @@ import { SwipeSlider } from '../src/components/SwipeSlider';
 import { getLogsForHabit, isCompletedToday } from '../src/core/db';
 import { HabitLog } from '../src/core/types';
 import { useHabitStore } from '../src/store/useHabitStore';
+
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function Dashboard() {
   const router = useRouter();
@@ -55,16 +58,16 @@ export default function Dashboard() {
   return (
     <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
       {/* Header */}
-      <View style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
+      <Animated.View entering={FadeInDown.delay(100).duration(600)} style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
         <Text style={{ color: '#6b7280', fontSize: 12, letterSpacing: 2 }}>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
         </Text>
         <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>Dashboard</Text>
-      </View>
+      </Animated.View>
 
       <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 180 }}>
         {/* Stats Row */}
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+        <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
           <View style={{ flex: 1, backgroundColor: '#111', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#222' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="flame" size={24} color="#00FFFF" />
@@ -83,20 +86,21 @@ export default function Dashboard() {
               </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Habit Selector */}
         {habits.length > 0 ? (
           <View>
-            <Text style={{ color: 'white', fontWeight: 'bold', marginBottom: 12, fontSize: 16 }}>Your Habits</Text>
+            <Animated.Text entering={FadeIn.delay(300)} style={{ color: 'white', fontWeight: 'bold', marginBottom: 12, fontSize: 16 }}>Your Habits</Animated.Text>
             <FlatList
               data={habits}
               horizontal
               showsHorizontalScrollIndicator={false}
               keyExtractor={h => h.id}
               style={{ marginBottom: 16 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity
+              renderItem={({ item, index }) => (
+                <AnimatedTouchable
+                  entering={FadeInDown.delay(400 + index * 100).springify()}
                   onPress={() => setSelectedHabitId(item.id)}
                   style={{
                     marginRight: 10,
@@ -106,12 +110,15 @@ export default function Dashboard() {
                     backgroundColor: selectedHabitId === item.id ? 'rgba(0, 255, 255, 0.15)' : '#111',
                     borderWidth: 1,
                     borderColor: selectedHabitId === item.id ? '#00FFFF' : '#222',
+                    flexDirection: 'row',
+                    alignItems: 'center',
                   }}
                 >
+                  <Ionicons name={(item.icon || 'barbell') as any} size={16} color={selectedHabitId === item.id ? '#00FFFF' : '#9ca3af'} style={{ marginRight: 8 }} />
                   <Text style={{ color: selectedHabitId === item.id ? '#00FFFF' : '#9ca3af' }}>
                     {item.name}
                   </Text>
-                </TouchableOpacity>
+                </AnimatedTouchable>
               )}
             />
 
@@ -129,45 +136,45 @@ export default function Dashboard() {
                   }}
                 />
 
-                <View style={{ marginTop: 16 }}>
+                <Animated.View entering={FadeInUp.delay(600).duration(500)} style={{ marginTop: 16 }}>
                   <DotGrid logs={currentLogs} />
-                </View>
+                </Animated.View>
 
                 {suggestions.find(s => s.habitId === selectedHabit.id) && (
-                  <View style={{ marginTop: 16, backgroundColor: '#111', borderRadius: 16, padding: 16, borderLeftWidth: 3, borderLeftColor: '#00FFFF' }}>
+                  <Animated.View entering={FadeIn.delay(700)} style={{ marginTop: 16, backgroundColor: '#111', borderRadius: 16, padding: 16, borderLeftWidth: 3, borderLeftColor: '#00FFFF' }}>
                     <Text style={{ color: '#00FFFF', fontWeight: 'bold', marginBottom: 4 }}>Suggestion</Text>
                     <Text style={{ color: '#d1d5db', fontSize: 13 }}>
                       {suggestions.find(s => s.habitId === selectedHabit.id)?.reason}
                     </Text>
-                  </View>
+                  </Animated.View>
                 )}
               </>
             )}
           </View>
         ) : (
-          <View style={{ backgroundColor: '#111', padding: 40, borderRadius: 20, alignItems: 'center' }}>
+          <Animated.View entering={FadeIn.delay(300).duration(600)} style={{ backgroundColor: '#111', padding: 40, borderRadius: 20, alignItems: 'center' }}>
             <Ionicons name="add-circle" size={60} color="#00FFFF" />
             <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginTop: 16 }}>No habits yet</Text>
             <Text style={{ color: '#9ca3af', textAlign: 'center', marginTop: 8 }}>
               Tap the + button to create your first habit!
             </Text>
-          </View>
+          </Animated.View>
         )}
       </ScrollView>
 
       {selectedHabit && !completedToday && (
-        <View style={{ position: 'absolute', bottom: 110, left: 0, right: 0, paddingHorizontal: 16 }}>
+        <Animated.View entering={FadeInUp.delay(800).springify()} style={{ position: 'absolute', bottom: 110, left: 0, right: 0, paddingHorizontal: 16 }}>
           <SwipeSlider onComplete={handleComplete} />
-        </View>
+        </Animated.View>
       )}
 
       {showCompletedMessage && (
-        <View style={{ position: 'absolute', bottom: 110, left: 0, right: 0, alignItems: 'center' }}>
+        <Animated.View entering={FadeIn.duration(300)} style={{ position: 'absolute', bottom: 110, left: 0, right: 0, alignItems: 'center' }}>
           <View style={{ backgroundColor: '#111', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#00FFFF' }}>
             <Ionicons name="checkmark-circle" size={20} color="#00FFFF" />
             <Text style={{ color: '#00FFFF', marginLeft: 8, fontWeight: 'bold' }}>Completed Today!</Text>
           </View>
-        </View>
+        </Animated.View>
       )}
 
       <FloatingTabBar onAddPress={() => router.push('/create')} />
