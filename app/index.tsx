@@ -31,8 +31,8 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-background items-center justify-center">
-        <ActivityIndicator size="large" color="#6236FF" />
+      <View style={{ flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#00FFFF" />
       </View>
     );
   }
@@ -46,79 +46,49 @@ export default function Dashboard() {
       setCurrentLogs(updatedLogs);
       setCompletedToday(true);
       setShowCompletedMessage(true);
-      setTimeout(() => {
-        setShowCompletedMessage(false);
-      }, 2000);
+      setTimeout(() => setShowCompletedMessage(false), 2000);
     }
   };
 
-  // Calculate stats
   const totalStreaks = habits.reduce((acc, h) => acc + h.streak, 0);
-  const completedHabitsToday = habits.filter(h => {
-    const log = currentLogs.find(l => l.habitId === h.id);
-    return log?.status === 'completed';
-  }).length;
-
-  const GlassCard = ({ children, style }: { children: React.ReactNode; style?: any }) => (
-    <View
-      style={[{
-        backgroundColor: 'rgba(30, 30, 40, 0.6)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 16,
-      }, style]}
-    >
-      {children}
-    </View>
-  );
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
       {/* Header */}
-      <View className="flex-row justify-between items-center py-4 px-4">
-        <View>
-          <Text className="text-gray-400 text-xs font-sans tracking-widest uppercase" style={{ color: '#9ca3af' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </Text>
-          <Text className="text-white text-2xl font-bold font-sans" style={{ color: 'white' }}>
-            Dashboard
-          </Text>
-        </View>
+      <View style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
+        <Text style={{ color: '#6b7280', fontSize: 12, letterSpacing: 2 }}>
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
+        </Text>
+        <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>Dashboard</Text>
       </View>
 
-      {/* Main Content */}
-      <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 180 }}>
-
-        {/* Quick Stats Row */}
-        <View className="flex-row gap-3 mb-4">
-          <GlassCard style={{ flex: 1, padding: 16 }}>
-            <View className="flex-row items-center">
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(98, 54, 255, 0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                <Ionicons name="flame" size={20} color="#6236FF" />
-              </View>
-              <View>
-                <Text style={{ color: '#9ca3af', fontSize: 10, letterSpacing: 1 }}>TOTAL STREAKS</Text>
-                <Text style={{ color: '#6236FF', fontSize: 24, fontWeight: 'bold' }}>{totalStreaks}</Text>
+      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 180 }}>
+        {/* Stats Row */}
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+          <View style={{ flex: 1, backgroundColor: '#111', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#222' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="flame" size={24} color="#00FFFF" />
+              <View style={{ marginLeft: 12 }}>
+                <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>TOTAL STREAKS</Text>
+                <Text style={{ color: '#00FFFF', fontSize: 28, fontWeight: 'bold' }}>{totalStreaks}</Text>
               </View>
             </View>
-          </GlassCard>
-          <GlassCard style={{ flex: 1, padding: 16 }}>
-            <View className="flex-row items-center">
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(34, 197, 94, 0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-              </View>
-              <View>
-                <Text style={{ color: '#9ca3af', fontSize: 10, letterSpacing: 1 }}>ACTIVE HABITS</Text>
-                <Text style={{ color: '#22c55e', fontSize: 24, fontWeight: 'bold' }}>{habits.length}</Text>
+          </View>
+          <View style={{ flex: 1, backgroundColor: '#111', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#222' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="checkmark-circle" size={24} color="#FF00FF" />
+              <View style={{ marginLeft: 12 }}>
+                <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>ACTIVE HABITS</Text>
+                <Text style={{ color: '#FF00FF', fontSize: 28, fontWeight: 'bold' }}>{habits.length}</Text>
               </View>
             </View>
-          </GlassCard>
+          </View>
         </View>
 
-        {/* Habit Selector (Horizontal List) */}
+        {/* Habit Selector */}
         {habits.length > 0 ? (
           <View>
-            <Text style={{ color: 'white', fontWeight: 'bold', marginBottom: 8 }}>Your Habits</Text>
+            <Text style={{ color: 'white', fontWeight: 'bold', marginBottom: 12, fontSize: 16 }}>Your Habits</Text>
             <FlatList
               data={habits}
               horizontal
@@ -130,15 +100,15 @@ export default function Dashboard() {
                   onPress={() => setSelectedHabitId(item.id)}
                   style={{
                     marginRight: 10,
-                    paddingHorizontal: 16,
+                    paddingHorizontal: 18,
                     paddingVertical: 12,
-                    borderRadius: 12,
-                    backgroundColor: selectedHabitId === item.id ? 'rgba(98, 54, 255, 0.15)' : 'rgba(30, 30, 40, 0.6)',
+                    borderRadius: 20,
+                    backgroundColor: selectedHabitId === item.id ? 'rgba(0, 255, 255, 0.15)' : '#111',
                     borderWidth: 1,
-                    borderColor: selectedHabitId === item.id ? '#6236FF' : 'rgba(255, 255, 255, 0.1)',
+                    borderColor: selectedHabitId === item.id ? '#00FFFF' : '#222',
                   }}
                 >
-                  <Text style={{ color: selectedHabitId === item.id ? '#6236FF' : '#9ca3af', fontWeight: selectedHabitId === item.id ? 'bold' : 'normal' }}>
+                  <Text style={{ color: selectedHabitId === item.id ? '#00FFFF' : '#9ca3af' }}>
                     {item.name}
                   </Text>
                 </TouchableOpacity>
@@ -159,58 +129,47 @@ export default function Dashboard() {
                   }}
                 />
 
-                {/* History Dot Grid */}
                 <View style={{ marginTop: 16 }}>
                   <DotGrid logs={currentLogs} />
                 </View>
 
-                {/* Suggestions / Alerts */}
                 {suggestions.find(s => s.habitId === selectedHabit.id) && (
-                  <GlassCard style={{ padding: 16, borderLeftWidth: 3, borderLeftColor: '#eab308' }}>
-                    <Text style={{ color: '#eab308', fontWeight: 'bold', marginBottom: 4 }}>Suggestion</Text>
+                  <View style={{ marginTop: 16, backgroundColor: '#111', borderRadius: 16, padding: 16, borderLeftWidth: 3, borderLeftColor: '#00FFFF' }}>
+                    <Text style={{ color: '#00FFFF', fontWeight: 'bold', marginBottom: 4 }}>Suggestion</Text>
                     <Text style={{ color: '#d1d5db', fontSize: 13 }}>
                       {suggestions.find(s => s.habitId === selectedHabit.id)?.reason}
                     </Text>
-                    <Text style={{ color: '#9ca3af', fontSize: 12, fontStyle: 'italic', marginTop: 8 }}>
-                      {suggestions.find(s => s.habitId === selectedHabit.id)?.suggestedAction}
-                    </Text>
-                  </GlassCard>
+                  </View>
                 )}
               </>
             )}
           </View>
         ) : (
-          <GlassCard style={{ padding: 40, alignItems: 'center' }}>
-            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(98, 54, 255, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Ionicons name="add" size={40} color="#6236FF" />
-            </View>
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>No habits yet</Text>
-            <Text style={{ color: '#9ca3af', textAlign: 'center' }}>
-              Tap the + button below to create your first habit and start building streaks!
+          <View style={{ backgroundColor: '#111', padding: 40, borderRadius: 20, alignItems: 'center' }}>
+            <Ionicons name="add-circle" size={60} color="#00FFFF" />
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginTop: 16 }}>No habits yet</Text>
+            <Text style={{ color: '#9ca3af', textAlign: 'center', marginTop: 8 }}>
+              Tap the + button to create your first habit!
             </Text>
-          </GlassCard>
+          </View>
         )}
-
       </ScrollView>
 
-      {/* Footer Slider - Only show if habit selected and not completed today */}
       {selectedHabit && !completedToday && (
         <View style={{ position: 'absolute', bottom: 110, left: 0, right: 0, paddingHorizontal: 16 }}>
           <SwipeSlider onComplete={handleComplete} />
         </View>
       )}
 
-      {/* Completed Message - Auto-hides after 2 seconds */}
       {showCompletedMessage && (
-        <View style={{ position: 'absolute', bottom: 110, left: 0, right: 0, paddingHorizontal: 16, alignItems: 'center' }}>
-          <View style={{ backgroundColor: 'rgba(34, 197, 94, 0.2)', borderWidth: 1, borderColor: 'rgba(34, 197, 94, 0.3)', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-            <Text style={{ color: '#22c55e', marginLeft: 8, fontWeight: 'bold' }}>Completed Today!</Text>
+        <View style={{ position: 'absolute', bottom: 110, left: 0, right: 0, alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#111', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#00FFFF' }}>
+            <Ionicons name="checkmark-circle" size={20} color="#00FFFF" />
+            <Text style={{ color: '#00FFFF', marginLeft: 8, fontWeight: 'bold' }}>Completed Today!</Text>
           </View>
         </View>
       )}
 
-      {/* Floating Tab Bar */}
       <FloatingTabBar onAddPress={() => router.push('/create')} />
     </View>
   );

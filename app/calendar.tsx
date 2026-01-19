@@ -4,9 +4,48 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Defs, Stop, LinearGradient as SvgGradient } from 'react-native-svg';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
 import { getAllLogs } from '../src/core/db';
 import { HabitLog } from '../src/core/types';
+
+function DayCircle({ day, count, isCurrentDay }: { day: number; count: number; isCurrentDay: boolean }) {
+    const size = 36;
+    const strokeWidth = 2;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const progress = Math.min(count / 3, 1);
+    const strokeDashoffset = circumference * (1 - progress);
+
+    return (
+        <View style={{ width: '14.28%', aspectRatio: 1, padding: 2, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+                <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+                    <Defs>
+                        <SvgGradient id={`calGradient${day}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                            <Stop offset="0%" stopColor="#00FFFF" />
+                            <Stop offset="100%" stopColor="#FF00FF" />
+                        </SvgGradient>
+                    </Defs>
+                    <Circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        stroke={count > 0 ? `url(#calGradient${day})` : 'rgba(255, 255, 255, 0.1)'}
+                        strokeWidth={strokeWidth}
+                        fill="transparent"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={count > 0 ? strokeDashoffset : 0}
+                        strokeLinecap="round"
+                    />
+                </Svg>
+                <Text style={{ color: count > 0 ? 'white' : isCurrentDay ? '#00FFFF' : '#6b7280', fontSize: 12, fontWeight: isCurrentDay ? 'bold' : 'normal' }}>
+                    {day}
+                </Text>
+            </View>
+        </View>
+    );
+}
 
 export default function CalendarScreen() {
     const router = useRouter();
@@ -21,7 +60,6 @@ export default function CalendarScreen() {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-
     const firstDayOfWeek = monthStart.getDay();
     const emptyDays = Array(firstDayOfWeek).fill(null);
 
@@ -29,140 +67,58 @@ export default function CalendarScreen() {
         const dayStart = new Date(date);
         dayStart.setHours(0, 0, 0, 0);
         const dayEnd = dayStart.getTime() + 24 * 60 * 60 * 1000;
-
-        return allLogs.filter(
-            log => log.timestamp >= dayStart.getTime() &&
-                log.timestamp < dayEnd &&
-                log.status === 'completed'
-        ).length;
+        return allLogs.filter(log => log.timestamp >= dayStart.getTime() && log.timestamp < dayEnd && log.status === 'completed').length;
     };
 
-    const previousMonth = () => {
-        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-    };
-
-    const nextMonth = () => {
-        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-    };
-
-    const GlassCard = ({ children, style }: { children: React.ReactNode; style?: any }) => (
-        <View
-            style={[{
-                backgroundColor: 'rgba(30, 30, 40, 0.6)',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: 16,
-            }, style]}
-        >
-            {children}
-        </View>
-    );
+    const completedDays = daysInMonth.filter(d => getCompletionCount(d) > 0).length;
+    const completionRate = Math.round((completedDays / daysInMonth.length) * 100);
 
     return (
-        <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-            <View className="flex-row items-center mb-6 px-4">
-                <TouchableOpacity onPress={() => router.back()} className="mr-4">
-                    <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
-                <Text className="text-white text-xl font-bold font-sans" style={{ color: 'white' }}>Calendar</Text>
+        <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
+            <View style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
+                <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>Calendar</Text>
             </View>
 
-            <ScrollView className="px-4" contentContainerStyle={{ paddingBottom: 120 }}>
+            <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Month Navigation */}
-                <GlassCard style={{ padding: 16, marginBottom: 16 }}>
-                    <View className="flex-row items-center justify-between">
-                        <TouchableOpacity
-                            onPress={previousMonth}
-                            style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: 12,
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <Ionicons name="chevron-back" size={20} color="white" />
-                        </TouchableOpacity>
-                        <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>
-                            {format(currentDate, 'MMMM yyyy')}
-                        </Text>
-                        <TouchableOpacity
-                            onPress={nextMonth}
-                            style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: 12,
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <Ionicons name="chevron-forward" size={20} color="white" />
-                        </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                    <TouchableOpacity onPress={() => setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="chevron-back" size={20} color="#00FFFF" />
+                    </TouchableOpacity>
+                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{format(currentDate, 'MMMM yyyy')}</Text>
+                    <TouchableOpacity onPress={() => setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="chevron-forward" size={20} color="#FF00FF" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Stats */}
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+                    <View style={{ flex: 1, backgroundColor: '#111', borderRadius: 16, padding: 16 }}>
+                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>COMPLETED</Text>
+                        <Text style={{ color: '#00FFFF', fontSize: 32, fontWeight: 'bold' }}>{completedDays}</Text>
+                        <Text style={{ color: '#6b7280', fontSize: 11 }}>days</Text>
                     </View>
-                </GlassCard>
+                    <View style={{ flex: 1, backgroundColor: '#111', borderRadius: 16, padding: 16 }}>
+                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>SUCCESS RATE</Text>
+                        <Text style={{ color: '#FF00FF', fontSize: 32, fontWeight: 'bold' }}>{completionRate}%</Text>
+                        <Text style={{ color: '#6b7280', fontSize: 11 }}>this month</Text>
+                    </View>
+                </View>
 
                 {/* Calendar Grid */}
-                <GlassCard style={{ padding: 16 }}>
-                    {/* Day Labels */}
-                    <View className="flex-row mb-3">
+                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 16 }}>
+                    <View style={{ flexDirection: 'row', marginBottom: 12 }}>
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                            <View key={day} className="flex-1 items-center">
-                                <Text style={{ color: '#6b7280', fontSize: 12 }}>{day}</Text>
+                            <View key={day} style={{ width: '14.28%', alignItems: 'center' }}>
+                                <Text style={{ color: '#6b7280', fontSize: 11 }}>{day}</Text>
                             </View>
                         ))}
                     </View>
-
-                    {/* Calendar Days */}
-                    <View className="flex-row flex-wrap">
-                        {emptyDays.map((_, index) => (
-                            <View key={`empty-${index}`} style={{ width: '14.28%', aspectRatio: 1, padding: 2 }} />
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                        {emptyDays.map((_, i) => <View key={`e-${i}`} style={{ width: '14.28%', aspectRatio: 1 }} />)}
+                        {daysInMonth.map(day => (
+                            <DayCircle key={day.toISOString()} day={parseInt(format(day, 'd'))} count={getCompletionCount(day)} isCurrentDay={isToday(day)} />
                         ))}
-                        {daysInMonth.map(day => {
-                            const count = getCompletionCount(day);
-                            const isCurrentDay = isToday(day);
-
-                            return (
-                                <View key={day.toISOString()} style={{ width: '14.28%', aspectRatio: 1, padding: 2 }}>
-                                    <View
-                                        style={{
-                                            flex: 1,
-                                            borderRadius: 12,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            backgroundColor: count > 0
-                                                ? `rgba(98, 54, 255, ${0.3 + count * 0.2})`
-                                                : 'rgba(255, 255, 255, 0.03)',
-                                            borderWidth: isCurrentDay ? 2 : 0,
-                                            borderColor: '#6236FF',
-                                        }}
-                                    >
-                                        <Text
-                                            style={{
-                                                color: count > 0 ? 'white' : '#6b7280',
-                                                fontSize: 14,
-                                                fontWeight: isCurrentDay ? 'bold' : 'normal',
-                                            }}
-                                        >
-                                            {format(day, 'd')}
-                                        </Text>
-                                    </View>
-                                </View>
-                            );
-                        })}
-                    </View>
-                </GlassCard>
-
-                {/* Legend */}
-                <View className="flex-row items-center justify-center mt-4 gap-6">
-                    <View className="flex-row items-center">
-                        <View style={{ width: 16, height: 16, borderRadius: 4, backgroundColor: 'rgba(255, 255, 255, 0.03)', marginRight: 8 }} />
-                        <Text style={{ color: '#9ca3af', fontSize: 12 }}>No activity</Text>
-                    </View>
-                    <View className="flex-row items-center">
-                        <View style={{ width: 16, height: 16, borderRadius: 4, backgroundColor: 'rgba(98, 54, 255, 0.5)', marginRight: 8 }} />
-                        <Text style={{ color: '#9ca3af', fontSize: 12 }}>Completed</Text>
                     </View>
                 </View>
             </ScrollView>

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -11,168 +12,75 @@ export default function CreateHabit() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const addHabit = useHabitStore(s => s.addHabit);
-
     const [name, setName] = useState('');
     const [frequency, setFrequency] = useState<Frequency>('daily');
     const [effort, setEffort] = useState(1);
     const [timeWindow, setTimeWindow] = useState('morning');
 
     const handleCreate = async () => {
-        if (!name.trim()) {
-            Alert.alert('Error', 'Please enter a habit name');
-            return;
-        }
-
-        try {
-            await addHabit(name, frequency, effort, timeWindow);
-            router.back();
-        } catch (e) {
-            Alert.alert('Error', 'Failed to create habit');
-        }
+        if (!name.trim()) { Alert.alert('Error', 'Please enter a habit name'); return; }
+        await addHabit(name, frequency, effort, timeWindow);
+        router.back();
     };
 
-    const GlassCard = ({ children, style }: { children: React.ReactNode; style?: any }) => (
-        <View
-            style={[{
-                backgroundColor: 'rgba(30, 30, 40, 0.6)',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: 16,
-                padding: 16,
-            }, style]}
-        >
-            {children}
-        </View>
-    );
-
     return (
-        <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-            <View className="flex-row items-center mb-6 px-4">
-                <TouchableOpacity onPress={() => router.back()} className="mr-4">
+        <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16 }}>
+                <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
                     <Ionicons name="close" size={24} color="white" />
                 </TouchableOpacity>
-                <Text className="text-white text-xl font-bold font-sans" style={{ color: 'white' }}>New Habit</Text>
+                <Text style={{ color: 'white', fontSize: 22, fontWeight: 'bold' }}>New Habit</Text>
             </View>
 
-            <ScrollView className="px-4" contentContainerStyle={{ paddingBottom: 120 }}>
-                {/* Name Input */}
-                <GlassCard style={{ marginBottom: 16 }}>
-                    <Text className="text-gray-400 mb-2 text-xs tracking-widest uppercase" style={{ color: '#9ca3af' }}>
-                        HABIT NAME
-                    </Text>
+            <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
+                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                    <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>HABIT NAME</Text>
                     <TextInput
-                        style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                            borderWidth: 1,
-                            borderColor: 'rgba(255, 255, 255, 0.1)',
-                            borderRadius: 12,
-                            padding: 16,
-                            color: 'white',
-                            fontSize: 16,
-                        }}
+                        style={{ backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#333', borderRadius: 12, padding: 16, color: 'white', fontSize: 16 }}
                         placeholder="e.g. Read 10 pages"
                         placeholderTextColor="#6b7280"
                         value={name}
                         onChangeText={setName}
                     />
-                </GlassCard>
+                </View>
 
-                {/* Frequency */}
-                <GlassCard style={{ marginBottom: 16 }}>
-                    <Text className="text-gray-400 mb-3 text-xs tracking-widest uppercase" style={{ color: '#9ca3af' }}>
-                        FREQUENCY
-                    </Text>
-                    <View className="flex-row gap-2">
+                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                    <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>FREQUENCY</Text>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
                         {['daily', 'weekdays', 'weekly'].map((f) => (
-                            <TouchableOpacity
-                                key={f}
-                                onPress={() => setFrequency(f as Frequency)}
-                                style={{
-                                    paddingHorizontal: 16,
-                                    paddingVertical: 10,
-                                    borderRadius: 10,
-                                    backgroundColor: frequency === f ? '#6236FF' : 'rgba(255, 255, 255, 0.05)',
-                                    borderWidth: 1,
-                                    borderColor: frequency === f ? '#6236FF' : 'rgba(255, 255, 255, 0.1)',
-                                }}
-                            >
-                                <Text style={{ color: frequency === f ? 'white' : '#9ca3af', fontWeight: frequency === f ? 'bold' : 'normal' }}>
-                                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                                </Text>
+                            <TouchableOpacity key={f} onPress={() => setFrequency(f as Frequency)} style={{ paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, backgroundColor: frequency === f ? 'rgba(255, 0, 255, 0.15)' : '#1a1a1a', borderWidth: 1, borderColor: frequency === f ? '#FF00FF' : '#333' }}>
+                                <Text style={{ color: frequency === f ? '#FF00FF' : '#9ca3af' }}>{f.charAt(0).toUpperCase() + f.slice(1)}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
-                </GlassCard>
+                </View>
 
-                {/* Effort Rating */}
-                <GlassCard style={{ marginBottom: 16 }}>
-                    <Text className="text-gray-400 mb-3 text-xs tracking-widest uppercase" style={{ color: '#9ca3af' }}>
-                        EFFORT RATING
-                    </Text>
-                    <View className="flex-row justify-between">
+                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                    <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>EFFORT RATING</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         {[1, 2, 3, 4, 5].map((r) => (
-                            <TouchableOpacity
-                                key={r}
-                                onPress={() => setEffort(r)}
-                                style={{
-                                    width: 50,
-                                    height: 50,
-                                    borderRadius: 25,
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    backgroundColor: effort === r ? '#6236FF' : 'rgba(255, 255, 255, 0.05)',
-                                    borderWidth: effort === r ? 0 : 1,
-                                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                                }}
-                            >
-                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>{r}</Text>
+                            <TouchableOpacity key={r} onPress={() => setEffort(r)} style={{ width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: effort === r ? 'rgba(0, 255, 255, 0.15)' : '#1a1a1a', borderWidth: effort === r ? 2 : 1, borderColor: effort === r ? '#00FFFF' : '#333' }}>
+                                <Text style={{ color: effort === r ? '#00FFFF' : 'white', fontWeight: 'bold', fontSize: 18 }}>{r}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
-                </GlassCard>
+                </View>
 
-                {/* Time Window */}
-                <GlassCard style={{ marginBottom: 24 }}>
-                    <Text className="text-gray-400 mb-3 text-xs tracking-widest uppercase" style={{ color: '#9ca3af' }}>
-                        TIME WINDOW
-                    </Text>
-                    <View className="flex-row flex-wrap gap-2">
+                <View style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+                    <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>TIME WINDOW</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                         {['morning', 'afternoon', 'evening', 'anytime'].map((t) => (
-                            <TouchableOpacity
-                                key={t}
-                                onPress={() => setTimeWindow(t)}
-                                style={{
-                                    paddingHorizontal: 16,
-                                    paddingVertical: 10,
-                                    borderRadius: 10,
-                                    backgroundColor: timeWindow === t ? '#6236FF' : 'rgba(255, 255, 255, 0.05)',
-                                    borderWidth: 1,
-                                    borderColor: timeWindow === t ? '#6236FF' : 'rgba(255, 255, 255, 0.1)',
-                                }}
-                            >
-                                <Text style={{ color: timeWindow === t ? 'white' : '#9ca3af', fontWeight: timeWindow === t ? 'bold' : 'normal' }}>
-                                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                                </Text>
+                            <TouchableOpacity key={t} onPress={() => setTimeWindow(t)} style={{ paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, backgroundColor: timeWindow === t ? 'rgba(255, 0, 255, 0.15)' : '#1a1a1a', borderWidth: 1, borderColor: timeWindow === t ? '#FF00FF' : '#333' }}>
+                                <Text style={{ color: timeWindow === t ? '#FF00FF' : '#9ca3af' }}>{t.charAt(0).toUpperCase() + t.slice(1)}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
-                </GlassCard>
+                </View>
 
-                {/* Create Button */}
-                <TouchableOpacity
-                    onPress={handleCreate}
-                    style={{
-                        backgroundColor: '#6236FF',
-                        padding: 18,
-                        borderRadius: 16,
-                        alignItems: 'center',
-                        shadowColor: '#6236FF',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.4,
-                        shadowRadius: 12,
-                    }}
-                >
-                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>CREATE HABIT</Text>
+                <TouchableOpacity onPress={handleCreate}>
+                    <LinearGradient colors={['#00FFFF', '#FF00FF'] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ padding: 18, borderRadius: 16, alignItems: 'center' }}>
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>CREATE HABIT</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
             </ScrollView>
 

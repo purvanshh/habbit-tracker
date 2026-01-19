@@ -1,195 +1,270 @@
 import { Ionicons } from '@expo/vector-icons';
+import { eachDayOfInterval, format, subDays } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Defs, Stop, LinearGradient as SvgGradient } from 'react-native-svg';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
 import { getAllLogs } from '../src/core/db';
 import { HabitLog } from '../src/core/types';
 import { useHabitStore } from '../src/store/useHabitStore';
 
-const screenWidth = Dimensions.get('window').width - 32;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function WeeklyReport() {
+// Circular progress component with gradient
+function CircularProgress({ progress, size = 180 }: { progress: number; size?: number }) {
+    const strokeWidth = 8;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference * (1 - progress);
+
+    return (
+        <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+            <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+                <Defs>
+                    <SvgGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <Stop offset="0%" stopColor="#00FFFF" />
+                        <Stop offset="100%" stopColor="#FF00FF" />
+                    </SvgGradient>
+                </Defs>
+                {/* Background circle */}
+                <Circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    stroke="rgba(255, 255, 255, 0.1)"
+                    strokeWidth={strokeWidth}
+                    fill="transparent"
+                />
+                {/* Progress circle */}
+                <Circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    stroke="url(#progressGradient)"
+                    strokeWidth={strokeWidth}
+                    fill="transparent"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                />
+            </Svg>
+            {/* Inner dark circle with icon */}
+            <View
+                style={{
+                    position: 'absolute',
+                    width: size - 40,
+                    height: size - 40,
+                    borderRadius: (size - 40) / 2,
+                    backgroundColor: '#1a1a2e',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: 'rgba(255, 255, 255, 0.05)',
+                }}
+            >
+                <Ionicons name="water" size={40} color="#00FFFF" />
+            </View>
+        </View>
+    );
+}
+
+// Date picker item
+function DatePickerItem({ date, isSelected, completions }: { date: Date; isSelected: boolean; completions: number }) {
+    const progress = Math.min(completions / 5, 1); // Max 5 completions for full ring
+    const size = isSelected ? 50 : 44;
+    const strokeWidth = 3;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference * (1 - progress);
+
+    return (
+        <View style={{ alignItems: 'center', marginHorizontal: 8 }}>
+            <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+                <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+                    <Defs>
+                        <SvgGradient id={`dayGradient${date.getDate()}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                            <Stop offset="0%" stopColor="#00FFFF" />
+                            <Stop offset="100%" stopColor="#FF00FF" />
+                        </SvgGradient>
+                    </Defs>
+                    <Circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        stroke={isSelected ? "url(#dayGradient" + date.getDate() + ")" : "rgba(255, 255, 255, 0.2)"}
+                        strokeWidth={strokeWidth}
+                        fill="transparent"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={isSelected ? 0 : strokeDashoffset}
+                        strokeLinecap="round"
+                    />
+                </Svg>
+                <Text style={{ color: isSelected ? 'white' : '#6b7280', fontSize: isSelected ? 16 : 14, fontWeight: isSelected ? 'bold' : 'normal' }}>
+                    {format(date, 'd')}
+                </Text>
+            </View>
+        </View>
+    );
+}
+
+// Bar chart bar
+function HistoryBar({ value, maxValue, label, color }: { value: number; maxValue: number; label: string; color: 'pink' | 'cyan' }) {
+    const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
+    const gradientColors: readonly [string, string] = color === 'pink' ? ['#FF00FF', '#FF69B4'] : ['#00CED1', '#00FFFF'];
+
+    return (
+        <View style={{ alignItems: 'center', flex: 1 }}>
+            <View style={{ height: 120, justifyContent: 'flex-end', alignItems: 'center' }}>
+                <LinearGradient
+                    colors={gradientColors}
+                    style={{
+                        width: 8,
+                        height: Math.max(height, 4),
+                        borderRadius: 4,
+                    }}
+                />
+            </View>
+            <Text style={{ color: '#6b7280', fontSize: 11, marginTop: 8 }}>{label}</Text>
+        </View>
+    );
+}
+
+export default function StatisticsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { suggestions, habits } = useHabitStore();
+    const { habits, suggestions } = useHabitStore();
     const [allLogs, setAllLogs] = useState<HabitLog[]>([]);
+    const [selectedHabitIndex, setSelectedHabitIndex] = useState(0);
 
-    const totalStreak = habits.reduce((acc, h) => acc + h.streak, 0);
+    const selectedHabit = habits[selectedHabitIndex];
 
     useEffect(() => {
         getAllLogs().then(setAllLogs).catch(() => setAllLogs([]));
     }, []);
 
-    const GlassCard = ({ children, style }: { children: React.ReactNode; style?: any }) => (
-        <View
-            style={[{
-                backgroundColor: 'rgba(30, 30, 40, 0.6)',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: 16,
-            }, style]}
-        >
-            {children}
-        </View>
-    );
+    // Generate last 5 days for the date picker
+    const today = new Date();
+    const dateDays = eachDayOfInterval({ start: subDays(today, 2), end: subDays(today, -2) });
 
-    const generateChartData = () => {
-        const now = new Date();
-        const days = 7;
-        const labels: string[] = [];
-        const completions: number[] = [];
+    // Get completions for selected habit
+    const getCompletionsForDay = (date: Date) => {
+        const dayStart = new Date(date);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = dayStart.getTime() + 24 * 60 * 60 * 1000;
 
-        for (let i = days - 1; i >= 0; i--) {
-            const date = new Date(now);
-            date.setDate(date.getDate() - i);
-            date.setHours(0, 0, 0, 0);
-            const startOfDay = date.getTime();
-            const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
-
-            labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
-
-            const dayCompletions = allLogs.filter(
-                log => log.timestamp >= startOfDay &&
-                    log.timestamp < endOfDay &&
-                    log.status === 'completed'
-            ).length;
-            completions.push(dayCompletions);
-        }
-
-        return { labels, completions };
+        return allLogs.filter(
+            log => log.timestamp >= dayStart.getTime() &&
+                log.timestamp < dayEnd &&
+                log.status === 'completed' &&
+                (!selectedHabit || log.habitId === selectedHabit.id)
+        ).length;
     };
 
-    const { labels, completions } = generateChartData();
+    // Weekly history data
+    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weekData = weekDays.map((day, i) => {
+        const date = subDays(today, (today.getDay() - i + 7) % 7);
+        return getCompletionsForDay(date);
+    });
+    const maxCompletions = Math.max(...weekData, 1);
 
-    const chartData = {
-        labels,
-        datasets: [
-            {
-                data: completions.some(c => c > 0) ? completions : [0, 0, 0, 0, 0, 0, 0],
-                color: (opacity = 1) => `rgba(98, 54, 255, ${opacity})`,
-                strokeWidth: 3,
-            },
-        ],
-        legend: ['Habits Completed'],
-    };
+    // Calculate overall progress for selected habit
+    const weeklyCompletions = selectedHabit
+        ? allLogs.filter(l => l.habitId === selectedHabit.id && l.status === 'completed' && l.timestamp >= subDays(today, 7).getTime()).length
+        : 0;
+    const progress = Math.min(weeklyCompletions / 7, 1);
 
-    const chartConfig = {
-        backgroundGradientFrom: 'rgba(30, 30, 40, 0.8)',
-        backgroundGradientTo: 'rgba(30, 30, 40, 0.8)',
-        decimalPlaces: 0,
-        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-        labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
-        style: {
-            borderRadius: 16,
-        },
-        propsForDots: {
-            r: '6',
-            strokeWidth: '2',
-            stroke: '#6236FF',
-        },
-        fillShadowGradient: '#6236FF',
-        fillShadowGradientOpacity: 0.3,
-    };
+    // Get suggestion for selected habit
+    const habitSuggestion = selectedHabit
+        ? suggestions.find(s => s.habitId === selectedHabit.id)
+        : null;
+
+    const motivationalText = habitSuggestion?.reason || (selectedHabit
+        ? progress >= 0.7
+            ? `Great job! You're keeping up with ${selectedHabit.name.toLowerCase()}.`
+            : `You were almost there, keep pushing to build your ${selectedHabit.name.toLowerCase()} habit.`
+        : 'Select a habit to view statistics');
 
     return (
-        <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-            <View className="flex-row items-center mb-6 px-4">
-                <TouchableOpacity onPress={() => router.back()} className="mr-4">
-                    <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
-                <Text className="text-white text-xl font-bold font-sans" style={{ color: 'white' }}>Analytics</Text>
+        <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
+            {/* Header */}
+            <View style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
+                <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>Statistics</Text>
             </View>
 
-            <ScrollView className="px-4" contentContainerStyle={{ paddingBottom: 120 }}>
-                {/* Summary Card */}
-                <GlassCard style={{ padding: 24, marginBottom: 16 }}>
-                    <Text style={{ color: '#9ca3af', fontSize: 10, letterSpacing: 2, marginBottom: 4 }}>
-                        TOTAL STREAKS
-                    </Text>
-                    <Text style={{ color: '#6236FF', fontSize: 48, fontWeight: 'bold' }}>
-                        {totalStreak}
-                    </Text>
-                </GlassCard>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }}>
+                {/* Date Picker */}
+                <View style={{ flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 24, marginBottom: 40 }}>
+                    {dateDays.map((date, index) => (
+                        <DatePickerItem
+                            key={date.toISOString()}
+                            date={date}
+                            isSelected={index === 2}
+                            completions={getCompletionsForDay(date)}
+                        />
+                    ))}
+                </View>
 
-                {/* Chart Section */}
-                <GlassCard style={{ padding: 16, marginBottom: 16 }}>
-                    <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>This Week</Text>
-                    <LineChart
-                        data={chartData}
-                        width={screenWidth - 64}
-                        height={180}
-                        chartConfig={chartConfig}
-                        bezier
-                        style={{
-                            borderRadius: 12,
-                        }}
-                        fromZero
-                    />
-                </GlassCard>
+                {/* Circular Progress */}
+                <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                    <CircularProgress progress={progress} size={180} />
+                </View>
 
-                {/* Per-Habit Stats */}
-                <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>Per Habit Breakdown</Text>
-                {habits.map(habit => {
-                    const habitLogs = allLogs.filter(l => l.habitId === habit.id && l.status === 'completed');
-                    const weeklyCompletions = habitLogs.filter(l => {
-                        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                        return l.timestamp >= weekAgo;
-                    }).length;
-                    const completionRate = Math.round((weeklyCompletions / 7) * 100);
+                {/* Habit Name */}
+                <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 16 }}>
+                    {selectedHabit?.name || 'No Habit Selected'}
+                </Text>
 
-                    return (
-                        <GlassCard key={habit.id} style={{ padding: 16, marginBottom: 12 }}>
-                            <View className="flex-row justify-between items-center">
-                                <Text style={{ color: 'white', fontWeight: 'bold' }}>{habit.name}</Text>
-                                <Text style={{ color: '#6236FF', fontWeight: 'bold' }}>{habit.streak} 🔥</Text>
-                            </View>
-                            <View style={{ marginTop: 12, height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-                                <View
-                                    style={{
-                                        height: '100%',
-                                        width: `${Math.min(completionRate, 100)}%`,
-                                        backgroundColor: '#6236FF',
-                                        borderRadius: 3,
-                                    }}
-                                />
-                            </View>
-                            <Text style={{ color: '#9ca3af', fontSize: 12, marginTop: 6 }}>
-                                {weeklyCompletions}/7 days this week ({completionRate}%)
-                            </Text>
-                        </GlassCard>
-                    );
-                })}
+                {/* Motivational Text */}
+                <Text style={{ color: '#6b7280', fontSize: 14, textAlign: 'center', paddingHorizontal: 40, marginBottom: 40, lineHeight: 22 }}>
+                    {motivationalText}
+                </Text>
 
-                {/* Suggestions */}
-                {suggestions.length > 0 && (
-                    <>
-                        <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', marginTop: 8, marginBottom: 12 }}>Suggestions</Text>
-                        {suggestions.map((s, i) => {
-                            const habitName = habits.find(h => h.id === s.habitId)?.name || 'Unknown';
-                            return (
-                                <GlassCard key={i} style={{ padding: 16, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#eab308' }}>
-                                    <Text style={{ color: 'white', fontWeight: 'bold', marginBottom: 4 }}>{habitName}</Text>
-                                    <Text style={{ color: '#9ca3af', fontSize: 13, marginBottom: 8 }}>{s.reason}</Text>
-                                    <View style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)', padding: 8, borderRadius: 8 }}>
-                                        <Text style={{ color: '#d1d5db', fontSize: 13, fontStyle: 'italic' }}>{s.suggestedAction}</Text>
-                                    </View>
-                                </GlassCard>
-                            );
-                        })}
-                    </>
+                {/* Habit Selector */}
+                {habits.length > 1 && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 32, paddingHorizontal: 24 }}>
+                        {habits.map((habit, index) => (
+                            <TouchableOpacity
+                                key={habit.id}
+                                onPress={() => setSelectedHabitIndex(index)}
+                                style={{
+                                    paddingHorizontal: 16,
+                                    paddingVertical: 8,
+                                    marginRight: 12,
+                                    borderRadius: 20,
+                                    backgroundColor: index === selectedHabitIndex ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                    borderWidth: 1,
+                                    borderColor: index === selectedHabitIndex ? '#00FFFF' : 'rgba(255, 255, 255, 0.1)',
+                                }}
+                            >
+                                <Text style={{ color: index === selectedHabitIndex ? '#00FFFF' : '#9ca3af', fontSize: 13 }}>
+                                    {habit.name}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
                 )}
 
-                {suggestions.length === 0 && (
-                    <GlassCard style={{ padding: 24, alignItems: 'center' }}>
-                        <Ionicons name="checkmark-circle" size={48} color="#22c55e" />
-                        <Text style={{ color: '#9ca3af', marginTop: 8, textAlign: 'center' }}>
-                            All habits on track!
-                        </Text>
-                    </GlassCard>
-                )}
+                {/* Intake History */}
+                <View style={{ paddingHorizontal: 24 }}>
+                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 24 }}>
+                        Intake history
+                    </Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        {weekDays.map((day, index) => (
+                            <HistoryBar
+                                key={day}
+                                value={weekData[index]}
+                                maxValue={maxCompletions}
+                                label={day}
+                                color={index < 4 ? 'pink' : 'cyan'}
+                            />
+                        ))}
+                    </View>
+                </View>
             </ScrollView>
 
             <FloatingTabBar onAddPress={() => router.push('/create')} />
