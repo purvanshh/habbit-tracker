@@ -1,12 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
-import React, { memo, useEffect, useState } from 'react';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
     Easing,
     FadeInDown,
     useAnimatedStyle,
     useSharedValue,
-    withDelay,
     withRepeat,
     withSequence,
     withSpring,
@@ -45,15 +44,12 @@ function DeleteDialog({ visible, habitName, onCancel, onConfirm }: { visible: bo
         <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
             <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
                 <Animated.View style={[{ width: '100%', maxWidth: 320, backgroundColor: '#111', borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#222' }, containerStyle]}>
-                    {/* Header */}
                     <View style={{ alignItems: 'center', paddingTop: 32, paddingBottom: 16 }}>
-                        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255, 0, 255, 0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(168, 85, 247, 0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                             <Ionicons name="trash" size={28} color="#A855F7" />
                         </View>
                         <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>Delete Habit</Text>
                     </View>
-
-                    {/* Message */}
                     <View style={{ paddingHorizontal: 24, paddingBottom: 24 }}>
                         <Text style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', lineHeight: 22 }}>
                             Are you sure you want to delete{'\n'}
@@ -61,8 +57,6 @@ function DeleteDialog({ visible, habitName, onCancel, onConfirm }: { visible: bo
                             This action cannot be undone.
                         </Text>
                     </View>
-
-                    {/* Buttons */}
                     <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#222' }}>
                         <TouchableOpacity onPress={onCancel} style={{ flex: 1, paddingVertical: 16, alignItems: 'center', borderRightWidth: 1, borderRightColor: '#222' }}>
                             <Text style={{ color: '#6b7280', fontSize: 16, fontWeight: '600' }}>Cancel</Text>
@@ -77,42 +71,82 @@ function DeleteDialog({ visible, habitName, onCancel, onConfirm }: { visible: bo
     );
 }
 
-const OdometerDigit = memo(function OdometerDigit({ digit, index }: { digit: string; index: number }) {
-    const prevDigit = digit === '0' ? '9' : String(Number(digit) - 1);
-    const nextDigit = digit === '9' ? '0' : String(Number(digit) + 1);
-
-    const scale = useSharedValue(0.8);
-    const opacity = useSharedValue(0);
+// Odometer digit with vertical slide animation
+const OdometerDigit = memo(function OdometerDigit({ digit, prevDigitValue }: { digit: string; prevDigitValue: string }) {
+    const translateY = useSharedValue(0);
+    const DIGIT_HEIGHT = 56;
 
     useEffect(() => {
-        scale.value = withDelay(index * 100, withSpring(1, { damping: 12, stiffness: 100 }));
-        opacity.value = withDelay(index * 100, withTiming(1, { duration: 400 }));
+        if (digit !== prevDigitValue) {
+            // Animate from bottom
+            translateY.value = DIGIT_HEIGHT;
+            translateY.value = withTiming(0, {
+                duration: 400,
+                easing: Easing.bezier(0.45, 0, 0.55, 1) // easeInOutSine
+            });
+        }
     }, [digit]);
 
     const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-        opacity: opacity.value,
+        transform: [{ translateY: translateY.value }],
     }));
 
     return (
-        <Animated.View style={[{ alignItems: 'center', width: 65, height: 120, justifyContent: 'center' }, animatedStyle]}>
-            <Text style={{ fontSize: 50, fontWeight: 'bold', color: 'rgba(0, 255, 255, 0.15)', position: 'absolute', top: -15 }}>{prevDigit}</Text>
-            <Text style={{ fontSize: 90, fontWeight: 'bold', color: 'white', letterSpacing: -2 }}>{digit}</Text>
-            <Text style={{ fontSize: 50, fontWeight: 'bold', color: 'rgba(255, 0, 255, 0.15)', position: 'absolute', bottom: -15 }}>{nextDigit}</Text>
-        </Animated.View>
+        <View style={{ width: 32, height: DIGIT_HEIGHT, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+            <Animated.View style={[animatedStyle]}>
+                <Text style={{
+                    fontSize: 48,
+                    fontWeight: '700',
+                    color: 'white',
+                    fontFamily: 'System',
+                    letterSpacing: -1,
+                }}>
+                    {digit}
+                </Text>
+            </Animated.View>
+        </View>
     );
 });
 
+// Streak counter with odometer animation
+function StreakCounter({ streak }: { streak: number }) {
+    const digits = String(streak).padStart(2, '0').split('');
+    const prevStreakRef = useRef(streak);
+    const prevDigits = useRef(digits);
+
+    useEffect(() => {
+        prevDigits.current = String(prevStreakRef.current).padStart(2, '0').split('');
+        prevStreakRef.current = streak;
+    }, [streak]);
+
+    return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            {/* Minimalist fire icon */}
+            <MaterialCommunityIcons name="fire" size={28} color="#F97316" style={{ marginRight: 4 }} />
+
+            {/* Odometer digits */}
+            <View style={{ flexDirection: 'row' }}>
+                {digits.map((digit, index) => (
+                    <OdometerDigit
+                        key={index}
+                        digit={digit}
+                        prevDigitValue={prevDigits.current[index] || '0'}
+                    />
+                ))}
+            </View>
+        </View>
+    );
+}
+
 function HabitCardComponent({ habit, longestStreak = 0, onEdit, onDelete }: HabitCardProps) {
-    const streakDigits = String(habit.streak).padStart(2, '0').split('');
     const glowOpacity = useSharedValue(0.3);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     useEffect(() => {
         glowOpacity.value = withRepeat(
             withSequence(
-                withTiming(0.6, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-                withTiming(0.3, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+                withTiming(0.5, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+                withTiming(0.2, { duration: 1500, easing: Easing.inOut(Easing.ease) })
             ),
             -1,
             true
@@ -134,45 +168,45 @@ function HabitCardComponent({ habit, longestStreak = 0, onEdit, onDelete }: Habi
             <Animated.View
                 entering={FadeInDown.duration(500).springify()}
                 style={[{
-                    backgroundColor: '#111',
-                    borderRadius: 20,
+                    backgroundColor: '#0F0F0F',
+                    borderRadius: 24,
                     padding: 24,
                     marginBottom: 16,
                     borderWidth: 1,
-                    borderColor: '#222',
+                    borderColor: '#1A1A1A',
                     shadowColor: '#6366F1',
                     shadowOffset: { width: 0, height: 0 },
                     shadowRadius: 20,
                 }, glowStyle]}
             >
-                <TouchableOpacity onPress={onEdit} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 40 }}>
-                    <Ionicons name="pencil-outline" size={16} color="#6366F1" />
-                    <Text style={{ color: '#6366F1', fontSize: 13, marginLeft: 10, letterSpacing: 3 }}>EDIT GOAL</Text>
+                {/* Edit button */}
+                <TouchableOpacity onPress={onEdit} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 32 }}>
+                    <Ionicons name="pencil-outline" size={14} color="#6366F1" />
+                    <Text style={{ color: '#6366F1', fontSize: 11, marginLeft: 8, letterSpacing: 2, fontWeight: '500' }}>EDIT GOAL</Text>
                 </TouchableOpacity>
 
                 <View style={{ flexDirection: 'row' }}>
+                    {/* Left side - Habit info */}
                     <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                        <View style={{ marginBottom: 50 }}>
-                            <Text style={{ color: '#6b7280', fontSize: 11, letterSpacing: 2, marginBottom: 6 }}>YOUR GOAL</Text>
-                            <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', letterSpacing: 1 }}>{habit.name.toUpperCase()}</Text>
+                        <View style={{ marginBottom: 32 }}>
+                            <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 6 }}>YOUR GOAL</Text>
+                            <Text style={{ color: 'white', fontSize: 15, fontWeight: '600', letterSpacing: 0.5 }}>{habit.name.toUpperCase()}</Text>
                         </View>
                         <View>
-                            <Text style={{ color: '#6b7280', fontSize: 11, letterSpacing: 2, marginBottom: 4 }}>LONGEST STREAK</Text>
-                            <Text style={{ color: '#A855F7', fontSize: 28, fontWeight: 'bold' }}>{longestStreak || habit.streak}</Text>
+                            <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 4 }}>LONGEST STREAK</Text>
+                            <Text style={{ color: '#A855F7', fontSize: 24, fontWeight: '700' }}>{longestStreak || habit.streak}</Text>
                         </View>
                     </View>
 
+                    {/* Right side - Streak counter */}
                     <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-                        <View style={{ height: 140, overflow: 'hidden', justifyContent: 'center' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                {streakDigits.map((digit, index) => <OdometerDigit key={`${index}-${digit}`} digit={digit} index={index} />)}
-                            </View>
-                        </View>
-                        <Text style={{ color: '#6366F1', fontSize: 11, letterSpacing: 2, marginTop: 8 }}>CURRENT STREAK</Text>
+                        <StreakCounter streak={habit.streak} />
+                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginTop: 8 }}>CURRENT STREAK</Text>
                     </View>
                 </View>
 
-                <TouchableOpacity onPress={handleDelete} style={{ position: 'absolute', top: 20, right: 20, backgroundColor: 'rgba(255, 0, 255, 0.1)', padding: 8, borderRadius: 8 }}>
+                {/* Delete button */}
+                <TouchableOpacity onPress={handleDelete} style={{ position: 'absolute', top: 20, right: 20, backgroundColor: 'rgba(168, 85, 247, 0.1)', padding: 10, borderRadius: 10 }}>
                     <Ionicons name="trash-outline" size={16} color="#A855F7" />
                 </TouchableOpacity>
             </Animated.View>

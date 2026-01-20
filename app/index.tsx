@@ -180,29 +180,18 @@ export default function Dashboard() {
 
       {selectedHabit && !completedToday && (
         <Animated.View entering={FadeInUp.delay(800).springify()} style={{ position: 'absolute', bottom: 110, left: 0, right: 0, paddingHorizontal: 16 }}>
-          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <View style={{ flex: 1 }}>
-              <SwipeSlider onComplete={handleComplete} />
-            </View>
-            {selectedHabit.skipsUsedThisWeek < (selectedHabit.maxSkipsPerWeek || 2) && (
-              <TouchableOpacity
-                onPress={async () => {
-                  const success = await skipHabit(selectedHabit.id);
-                  if (success) {
-                    setCompletedToday(true);
-                    setShowCompletedMessage(true);
-                    setTimeout(() => setShowCompletedMessage(false), 2000);
-                  }
-                }}
-                style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 16, borderWidth: 1, borderColor: '#F59E0B', alignItems: 'center' }}
-              >
-                <Ionicons name="pause" size={20} color="#F59E0B" />
-                <Text style={{ color: '#FBBF24', fontSize: 9, marginTop: 2 }}>
-                  {(selectedHabit.maxSkipsPerWeek || 2) - (selectedHabit.skipsUsedThisWeek || 0)}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <SwipeSlider
+            onComplete={handleComplete}
+            onSkip={async () => {
+              const success = await skipHabit(selectedHabit.id);
+              if (success) {
+                setCompletedToday(true);
+                setShowCompletedMessage(true);
+                setTimeout(() => setShowCompletedMessage(false), 2000);
+              }
+            }}
+            canSkip={(selectedHabit.skipsUsedThisWeek || 0) < (selectedHabit.maxSkipsPerWeek || 2)}
+          />
         </Animated.View>
       )}
 
