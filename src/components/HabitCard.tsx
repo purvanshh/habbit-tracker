@@ -48,7 +48,7 @@ function DeleteDialog({ visible, habitName, onCancel, onConfirm }: { visible: bo
                     {/* Header */}
                     <View style={{ alignItems: 'center', paddingTop: 32, paddingBottom: 16 }}>
                         <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255, 0, 255, 0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                            <Ionicons name="trash" size={28} color="#FF00FF" />
+                            <Ionicons name="trash" size={28} color="#A855F7" />
                         </View>
                         <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>Delete Habit</Text>
                     </View>
@@ -57,7 +57,7 @@ function DeleteDialog({ visible, habitName, onCancel, onConfirm }: { visible: bo
                     <View style={{ paddingHorizontal: 24, paddingBottom: 24 }}>
                         <Text style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', lineHeight: 22 }}>
                             Are you sure you want to delete{'\n'}
-                            <Text style={{ color: '#00FFFF', fontWeight: 'bold' }}>"{habitName}"</Text>?{'\n'}
+                            <Text style={{ color: '#6366F1', fontWeight: 'bold' }}>"{habitName}"</Text>?{'\n'}
                             This action cannot be undone.
                         </Text>
                     </View>
@@ -68,7 +68,7 @@ function DeleteDialog({ visible, habitName, onCancel, onConfirm }: { visible: bo
                             <Text style={{ color: '#6b7280', fontSize: 16, fontWeight: '600' }}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={onConfirm} style={{ flex: 1, paddingVertical: 16, alignItems: 'center' }}>
-                            <Text style={{ color: '#FF00FF', fontSize: 16, fontWeight: '600' }}>Delete</Text>
+                            <Text style={{ color: '#A855F7', fontSize: 16, fontWeight: '600' }}>Delete</Text>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
@@ -140,14 +140,14 @@ function HabitCardComponent({ habit, longestStreak = 0, onEdit, onDelete }: Habi
                     marginBottom: 16,
                     borderWidth: 1,
                     borderColor: '#222',
-                    shadowColor: '#00FFFF',
+                    shadowColor: '#6366F1',
                     shadowOffset: { width: 0, height: 0 },
                     shadowRadius: 20,
                 }, glowStyle]}
             >
                 <TouchableOpacity onPress={onEdit} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 40 }}>
-                    <Ionicons name="pencil-outline" size={16} color="#00FFFF" />
-                    <Text style={{ color: '#00FFFF', fontSize: 13, marginLeft: 10, letterSpacing: 3 }}>EDIT GOAL</Text>
+                    <Ionicons name="pencil-outline" size={16} color="#6366F1" />
+                    <Text style={{ color: '#6366F1', fontSize: 13, marginLeft: 10, letterSpacing: 3 }}>EDIT GOAL</Text>
                 </TouchableOpacity>
 
                 <View style={{ flexDirection: 'row' }}>
@@ -158,7 +158,7 @@ function HabitCardComponent({ habit, longestStreak = 0, onEdit, onDelete }: Habi
                         </View>
                         <View>
                             <Text style={{ color: '#6b7280', fontSize: 11, letterSpacing: 2, marginBottom: 4 }}>LONGEST STREAK</Text>
-                            <Text style={{ color: '#FF00FF', fontSize: 28, fontWeight: 'bold' }}>{longestStreak || habit.streak}</Text>
+                            <Text style={{ color: '#A855F7', fontSize: 28, fontWeight: 'bold' }}>{longestStreak || habit.streak}</Text>
                         </View>
                     </View>
 
@@ -168,12 +168,12 @@ function HabitCardComponent({ habit, longestStreak = 0, onEdit, onDelete }: Habi
                                 {streakDigits.map((digit, index) => <OdometerDigit key={`${index}-${digit}`} digit={digit} index={index} />)}
                             </View>
                         </View>
-                        <Text style={{ color: '#00FFFF', fontSize: 11, letterSpacing: 2, marginTop: 8 }}>CURRENT STREAK</Text>
+                        <Text style={{ color: '#6366F1', fontSize: 11, letterSpacing: 2, marginTop: 8 }}>CURRENT STREAK</Text>
                     </View>
                 </View>
 
                 <TouchableOpacity onPress={handleDelete} style={{ position: 'absolute', top: 20, right: 20, backgroundColor: 'rgba(255, 0, 255, 0.1)', padding: 8, borderRadius: 8 }}>
-                    <Ionicons name="trash-outline" size={16} color="#FF00FF" />
+                    <Ionicons name="trash-outline" size={16} color="#A855F7" />
                 </TouchableOpacity>
             </Animated.View>
 

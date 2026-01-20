@@ -17,7 +17,7 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 export default function Dashboard() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { habits, logHabit, removeHabit, suggestions, isLoading } = useHabitStore();
+  const { habits, logHabit, removeHabit, suggestions, isLoading, skipHabit } = useHabitStore();
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
   const [currentLogs, setCurrentLogs] = useState<HabitLog[]>([]);
   const [completedToday, setCompletedToday] = useState(false);
@@ -35,7 +35,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#00FFFF" />
+        <ActivityIndicator size="large" color="#6366F1" />
       </View>
     );
   }
@@ -70,19 +70,19 @@ export default function Dashboard() {
         <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
           <View style={{ flex: 1, backgroundColor: '#111', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#222' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="flame" size={24} color="#00FFFF" />
+              <Ionicons name="flame" size={24} color="#6366F1" />
               <View style={{ marginLeft: 12 }}>
                 <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>TOTAL STREAKS</Text>
-                <Text style={{ color: '#00FFFF', fontSize: 28, fontWeight: 'bold' }}>{totalStreaks}</Text>
+                <Text style={{ color: '#6366F1', fontSize: 28, fontWeight: 'bold' }}>{totalStreaks}</Text>
               </View>
             </View>
           </View>
           <View style={{ flex: 1, backgroundColor: '#111', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#222' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="checkmark-circle" size={24} color="#FF00FF" />
+              <Ionicons name="checkmark-circle" size={24} color="#A855F7" />
               <View style={{ marginLeft: 12 }}>
                 <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>ACTIVE HABITS</Text>
-                <Text style={{ color: '#FF00FF', fontSize: 28, fontWeight: 'bold' }}>{habits.length}</Text>
+                <Text style={{ color: '#A855F7', fontSize: 28, fontWeight: 'bold' }}>{habits.length}</Text>
               </View>
             </View>
           </View>
@@ -109,13 +109,13 @@ export default function Dashboard() {
                     borderRadius: 20,
                     backgroundColor: selectedHabitId === item.id ? 'rgba(0, 255, 255, 0.15)' : '#111',
                     borderWidth: 1,
-                    borderColor: selectedHabitId === item.id ? '#00FFFF' : '#222',
+                    borderColor: selectedHabitId === item.id ? '#6366F1' : '#222',
                     flexDirection: 'row',
                     alignItems: 'center',
                   }}
                 >
-                  <Ionicons name={(item.icon || 'barbell') as any} size={16} color={selectedHabitId === item.id ? '#00FFFF' : '#9ca3af'} style={{ marginRight: 8 }} />
-                  <Text style={{ color: selectedHabitId === item.id ? '#00FFFF' : '#9ca3af' }}>
+                  <Ionicons name={(item.icon || 'barbell') as any} size={16} color={selectedHabitId === item.id ? '#6366F1' : '#9ca3af'} style={{ marginRight: 8 }} />
+                  <Text style={{ color: selectedHabitId === item.id ? '#6366F1' : '#9ca3af' }}>
                     {item.name}
                   </Text>
                 </AnimatedTouchable>
@@ -126,6 +126,7 @@ export default function Dashboard() {
               <>
                 <HabitCard
                   habit={selectedHabit}
+                  onEdit={() => router.push({ pathname: '/edit-habit', params: { id: selectedHabit.id } })}
                   onDelete={() => {
                     removeHabit(selectedHabit.id);
                     if (habits.length > 1) {
@@ -140,9 +141,24 @@ export default function Dashboard() {
                   <DotGrid logs={currentLogs} />
                 </Animated.View>
 
+                {/* Weekly Report Banner */}
+                <Animated.View entering={FadeInUp.delay(650).duration(500)} style={{ marginTop: 16 }}>
+                  <TouchableOpacity
+                    onPress={() => router.push('/weekly-report')}
+                    style={{ backgroundColor: '#111', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#222' }}
+                  >
+                    <Ionicons name="document-text" size={24} color="#6366F1" />
+                    <View style={{ marginLeft: 12, flex: 1 }}>
+                      <Text style={{ color: 'white', fontWeight: 'bold' }}>Weekly Report</Text>
+                      <Text style={{ color: '#6b7280', fontSize: 12 }}>View your progress & insights</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+                  </TouchableOpacity>
+                </Animated.View>
+
                 {suggestions.find(s => s.habitId === selectedHabit.id) && (
-                  <Animated.View entering={FadeIn.delay(700)} style={{ marginTop: 16, backgroundColor: '#111', borderRadius: 16, padding: 16, borderLeftWidth: 3, borderLeftColor: '#00FFFF' }}>
-                    <Text style={{ color: '#00FFFF', fontWeight: 'bold', marginBottom: 4 }}>Suggestion</Text>
+                  <Animated.View entering={FadeIn.delay(700)} style={{ marginTop: 16, backgroundColor: '#111', borderRadius: 16, padding: 16, borderLeftWidth: 3, borderLeftColor: '#6366F1' }}>
+                    <Text style={{ color: '#6366F1', fontWeight: 'bold', marginBottom: 4 }}>Suggestion</Text>
                     <Text style={{ color: '#d1d5db', fontSize: 13 }}>
                       {suggestions.find(s => s.habitId === selectedHabit.id)?.reason}
                     </Text>
@@ -153,7 +169,7 @@ export default function Dashboard() {
           </View>
         ) : (
           <Animated.View entering={FadeIn.delay(300).duration(600)} style={{ backgroundColor: '#111', padding: 40, borderRadius: 20, alignItems: 'center' }}>
-            <Ionicons name="add-circle" size={60} color="#00FFFF" />
+            <Ionicons name="add-circle" size={60} color="#6366F1" />
             <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginTop: 16 }}>No habits yet</Text>
             <Text style={{ color: '#9ca3af', textAlign: 'center', marginTop: 8 }}>
               Tap the + button to create your first habit!
@@ -164,15 +180,37 @@ export default function Dashboard() {
 
       {selectedHabit && !completedToday && (
         <Animated.View entering={FadeInUp.delay(800).springify()} style={{ position: 'absolute', bottom: 110, left: 0, right: 0, paddingHorizontal: 16 }}>
-          <SwipeSlider onComplete={handleComplete} />
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <SwipeSlider onComplete={handleComplete} />
+            </View>
+            {selectedHabit.skipsUsedThisWeek < (selectedHabit.maxSkipsPerWeek || 2) && (
+              <TouchableOpacity
+                onPress={async () => {
+                  const success = await skipHabit(selectedHabit.id);
+                  if (success) {
+                    setCompletedToday(true);
+                    setShowCompletedMessage(true);
+                    setTimeout(() => setShowCompletedMessage(false), 2000);
+                  }
+                }}
+                style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 16, borderWidth: 1, borderColor: '#F59E0B', alignItems: 'center' }}
+              >
+                <Ionicons name="pause" size={20} color="#F59E0B" />
+                <Text style={{ color: '#FBBF24', fontSize: 9, marginTop: 2 }}>
+                  {(selectedHabit.maxSkipsPerWeek || 2) - (selectedHabit.skipsUsedThisWeek || 0)}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </Animated.View>
       )}
 
       {showCompletedMessage && (
         <Animated.View entering={FadeIn.duration(300)} style={{ position: 'absolute', bottom: 110, left: 0, right: 0, alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#111', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#00FFFF' }}>
-            <Ionicons name="checkmark-circle" size={20} color="#00FFFF" />
-            <Text style={{ color: '#00FFFF', marginLeft: 8, fontWeight: 'bold' }}>Completed Today!</Text>
+          <View style={{ backgroundColor: '#111', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#6366F1' }}>
+            <Ionicons name="checkmark-circle" size={20} color="#6366F1" />
+            <Text style={{ color: '#6366F1', marginLeft: 8, fontWeight: 'bold' }}>Completed Today!</Text>
           </View>
         </Animated.View>
       )}

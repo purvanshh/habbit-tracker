@@ -21,14 +21,14 @@ function CircularStat({ value, maxValue, label, color }: { value: number; maxVal
                 <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
                     <Defs>
                         <SvgGradient id={`stat${label}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                            <Stop offset="0%" stopColor={color === 'cyan' ? '#00FFFF' : '#FF00FF'} />
+                            <Stop offset="0%" stopColor={color === 'cyan' ? '#6366F1' : '#A855F7'} />
                             <Stop offset="100%" stopColor={color === 'cyan' ? '#00CED1' : '#FF69B4'} />
                         </SvgGradient>
                     </Defs>
                     <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255, 255, 255, 0.1)" strokeWidth={strokeWidth} fill="transparent" />
                     <Circle cx={size / 2} cy={size / 2} r={radius} stroke={`url(#stat${label})`} strokeWidth={strokeWidth} fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
                 </Svg>
-                <Text style={{ color: color === 'cyan' ? '#00FFFF' : '#FF00FF', fontSize: 24, fontWeight: 'bold' }}>{value}</Text>
+                <Text style={{ color: color === 'cyan' ? '#6366F1' : '#A855F7', fontSize: 24, fontWeight: 'bold' }}>{value}</Text>
             </View>
             <Text style={{ color: '#6b7280', fontSize: 10, marginTop: 8, letterSpacing: 1 }}>{label}</Text>
         </View>
@@ -51,8 +51,8 @@ export default function Profile() {
             <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Profile Header */}
                 <Animated.View entering={FadeInDown.delay(100).duration(400)} style={{ backgroundColor: '#111', borderRadius: 20, padding: 32, alignItems: 'center', marginBottom: 24 }}>
-                    <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 2, borderColor: '#00FFFF' }}>
-                        <Ionicons name="person" size={40} color="#00FFFF" />
+                    <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 2, borderColor: '#6366F1' }}>
+                        <Ionicons name="person" size={40} color="#6366F1" />
                     </View>
                     <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>Habit Master</Text>
                     <Text style={{ color: '#6b7280', fontSize: 14 }}>Building better habits daily</Text>
@@ -68,10 +68,10 @@ export default function Profile() {
                 {/* Settings */}
                 <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, overflow: 'hidden' }}>
                     {[
-                        { icon: 'notifications', label: 'Notifications', color: '#00FFFF' },
-                        { icon: 'moon', label: 'Dark Mode', color: '#FF00FF' },
-                        { icon: 'cloud-upload', label: 'Backup Data', color: '#00FFFF' },
-                        { icon: 'information-circle', label: 'About', color: '#FF00FF' },
+                        { icon: 'notifications', label: 'Notifications', color: '#6366F1' },
+                        { icon: 'moon', label: 'Dark Mode', color: '#A855F7' },
+                        { icon: 'cloud-upload', label: 'Backup Data', color: '#6366F1' },
+                        { icon: 'information-circle', label: 'About', color: '#A855F7' },
                     ].map((item, i) => (
                         <TouchableOpacity key={item.label} style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: i < 3 ? 1 : 0, borderBottomColor: '#222' }}>
                             <Ionicons name={item.icon as any} size={22} color={item.color} />

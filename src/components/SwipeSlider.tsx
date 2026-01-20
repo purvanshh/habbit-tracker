@@ -48,7 +48,7 @@ function SwipeSliderComponent({ onComplete }: SwipeSliderProps) {
                 </Animated.View>
                 <GestureDetector gesture={panGesture}>
                     <Animated.View style={[knobStyle, { position: 'absolute', left: 5, width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }]}>
-                        <LinearGradient colors={['#00FFFF', '#FF00FF'] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' }}>
+                        <LinearGradient colors={['#6366F1', '#A855F7'] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' }}>
                             <Ionicons name="checkmark" size={24} color="white" />
                         </LinearGradient>
                     </Animated.View>

@@ -23,15 +23,15 @@ function CircularProgress({ progress, size = 180, icon = 'barbell' }: { progress
             <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
                 <Defs>
                     <SvgGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <Stop offset="0%" stopColor="#00FFFF" />
-                        <Stop offset="100%" stopColor="#FF00FF" />
+                        <Stop offset="0%" stopColor="#6366F1" />
+                        <Stop offset="100%" stopColor="#A855F7" />
                     </SvgGradient>
                 </Defs>
                 <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255, 255, 255, 0.1)" strokeWidth={strokeWidth} fill="transparent" />
                 <Circle cx={size / 2} cy={size / 2} r={radius} stroke="url(#progressGradient)" strokeWidth={strokeWidth} fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
             </Svg>
             <View style={{ position: 'absolute', width: size - 40, height: size - 40, borderRadius: (size - 40) / 2, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#222' }}>
-                <Ionicons name={icon as any} size={40} color="#00FFFF" />
+                <Ionicons name={icon as any} size={40} color="#6366F1" />
             </View>
         </View>
     );
@@ -51,8 +51,8 @@ function DatePickerItem({ date, isSelected, completions }: { date: Date; isSelec
                 <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
                     <Defs>
                         <SvgGradient id={`dayGradient${date.getDate()}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                            <Stop offset="0%" stopColor="#00FFFF" />
-                            <Stop offset="100%" stopColor="#FF00FF" />
+                            <Stop offset="0%" stopColor="#6366F1" />
+                            <Stop offset="100%" stopColor="#A855F7" />
                         </SvgGradient>
                     </Defs>
                     <Circle cx={size / 2} cy={size / 2} r={radius} stroke={isSelected ? `url(#dayGradient${date.getDate()})` : "rgba(255, 255, 255, 0.2)"} strokeWidth={strokeWidth} fill="transparent" strokeDasharray={circumference} strokeDashoffset={isSelected ? 0 : strokeDashoffset} strokeLinecap="round" />
@@ -65,7 +65,7 @@ function DatePickerItem({ date, isSelected, completions }: { date: Date; isSelec
 
 function HistoryBar({ value, maxValue, label, color }: { value: number; maxValue: number; label: string; color: 'pink' | 'cyan' }) {
     const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
-    const gradientColors: readonly [string, string] = color === 'pink' ? ['#FF00FF', '#FF69B4'] : ['#00CED1', '#00FFFF'];
+    const gradientColors: readonly [string, string] = color === 'pink' ? ['#A855F7', '#FF69B4'] : ['#00CED1', '#6366F1'];
 
     return (
         <View style={{ alignItems: 'center', flex: 1 }}>
@@ -140,9 +140,9 @@ export default function StatisticsScreen() {
                 {habits.length > 1 && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 32, paddingHorizontal: 24 }}>
                         {habits.map((habit, index) => (
-                            <TouchableOpacity key={habit.id} onPress={() => setSelectedHabitIndex(index)} style={{ paddingHorizontal: 16, paddingVertical: 8, marginRight: 12, borderRadius: 20, backgroundColor: index === selectedHabitIndex ? 'rgba(0, 255, 255, 0.15)' : '#111', borderWidth: 1, borderColor: index === selectedHabitIndex ? '#00FFFF' : '#222', flexDirection: 'row', alignItems: 'center' }}>
-                                <Ionicons name={(habit.icon || 'barbell') as any} size={14} color={index === selectedHabitIndex ? '#00FFFF' : '#9ca3af'} style={{ marginRight: 6 }} />
-                                <Text style={{ color: index === selectedHabitIndex ? '#00FFFF' : '#9ca3af', fontSize: 13 }}>{habit.name}</Text>
+                            <TouchableOpacity key={habit.id} onPress={() => setSelectedHabitIndex(index)} style={{ paddingHorizontal: 16, paddingVertical: 8, marginRight: 12, borderRadius: 20, backgroundColor: index === selectedHabitIndex ? 'rgba(0, 255, 255, 0.15)' : '#111', borderWidth: 1, borderColor: index === selectedHabitIndex ? '#6366F1' : '#222', flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name={(habit.icon || 'barbell') as any} size={14} color={index === selectedHabitIndex ? '#6366F1' : '#9ca3af'} style={{ marginRight: 6 }} />
+                                <Text style={{ color: index === selectedHabitIndex ? '#6366F1' : '#9ca3af', fontSize: 13 }}>{habit.name}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>

@@ -24,7 +24,7 @@ const DayCell = memo(function DayCell({ day, status, index }: { day: Date; statu
     return (
         <Animated.View style={[{
             width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-            backgroundColor: status === 'completed' ? '#00FFFF' : status === 'skipped' ? '#333' : status === 'failed' ? 'rgba(255, 0, 255, 0.3)' : '#1a1a1a',
+            backgroundColor: status === 'completed' ? '#6366F1' : status === 'skipped' ? '#333' : status === 'failed' ? 'rgba(255, 0, 255, 0.3)' : '#1a1a1a',
         }, animatedStyle]}>
             <Text style={{ fontSize: 10, color: status === 'completed' ? '#000' : '#6b7280', fontWeight: status === 'completed' ? 'bold' : 'normal' }}>
                 {day.getDate()}

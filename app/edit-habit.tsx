@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
+import { updateHabit } from '../src/core/db';
 import { DayOfWeek, Frequency } from '../src/core/types';
 import { useHabitStore } from '../src/store/useHabitStore';
 
@@ -32,20 +33,8 @@ function DayPicker({ selectedDays, onToggle }: { selectedDays: DayOfWeek[]; onTo
             {DAY_LABELS.map((label, index) => {
                 const isSelected = selectedDays.includes(index as DayOfWeek);
                 return (
-                    <TouchableOpacity
-                        key={label}
-                        onPress={() => onToggle(index as DayOfWeek)}
-                        style={{
-                            width: 42, height: 42, borderRadius: 21,
-                            alignItems: 'center', justifyContent: 'center',
-                            backgroundColor: isSelected ? 'rgba(0, 255, 255, 0.2)' : '#1a1a1a',
-                            borderWidth: isSelected ? 2 : 1,
-                            borderColor: isSelected ? '#6366F1' : '#333',
-                        }}
-                    >
-                        <Text style={{ color: isSelected ? '#6366F1' : '#6b7280', fontSize: 11, fontWeight: 'bold' }}>
-                            {label}
-                        </Text>
+                    <TouchableOpacity key={label} onPress={() => onToggle(index as DayOfWeek)} style={{ width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? 'rgba(0, 255, 255, 0.2)' : '#1a1a1a', borderWidth: isSelected ? 2 : 1, borderColor: isSelected ? '#6366F1' : '#333' }}>
+                        <Text style={{ color: isSelected ? '#6366F1' : '#6b7280', fontSize: 11, fontWeight: 'bold' }}>{label}</Text>
                     </TouchableOpacity>
                 );
             })}
@@ -53,16 +42,29 @@ function DayPicker({ selectedDays, onToggle }: { selectedDays: DayOfWeek[]; onTo
     );
 }
 
-export default function CreateHabit() {
+export default function EditHabit() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const addHabit = useHabitStore(s => s.addHabit);
-    const [name, setName] = useState('');
-    const [icon, setIcon] = useState('barbell');
-    const [frequency, setFrequency] = useState<Frequency>('daily');
-    const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([0, 1, 2, 3, 4, 5, 6]);
-    const [effort, setEffort] = useState(1);
-    const [timeWindow, setTimeWindow] = useState('morning');
+    const { id } = useLocalSearchParams<{ id: string }>();
+    const { habits, initialize } = useHabitStore();
+
+    const habit = habits.find(h => h.id === id);
+
+    const [icon, setIcon] = useState(habit?.icon || 'barbell');
+    const [frequency, setFrequency] = useState<Frequency>(habit?.frequency || 'daily');
+    const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>(habit?.selectedDays || [0, 1, 2, 3, 4, 5, 6]);
+    const [effort, setEffort] = useState(habit?.effortRating || 1);
+    const [timeWindow, setTimeWindow] = useState(habit?.timeWindow || 'morning');
+
+    useEffect(() => {
+        if (habit) {
+            setIcon(habit.icon || 'barbell');
+            setFrequency(habit.frequency);
+            setSelectedDays(habit.selectedDays || [0, 1, 2, 3, 4, 5, 6]);
+            setEffort(habit.effortRating);
+            setTimeWindow(habit.timeWindow);
+        }
+    }, [habit]);
 
     const toggleDay = (day: DayOfWeek) => {
         if (selectedDays.includes(day)) {
@@ -72,25 +74,33 @@ export default function CreateHabit() {
         }
     };
 
-    const setPreset = (preset: 'all' | 'weekdays' | 'weekends') => {
-        if (preset === 'all') setSelectedDays([0, 1, 2, 3, 4, 5, 6]);
-        else if (preset === 'weekdays') setSelectedDays([1, 2, 3, 4, 5]);
+    const setPreset = (preset: 'weekdays' | 'weekends') => {
+        if (preset === 'weekdays') setSelectedDays([1, 2, 3, 4, 5]);
         else setSelectedDays([0, 6]);
     };
 
-    const handleCreate = async () => {
-        if (!name.trim()) { Alert.alert('Error', 'Please enter a habit name'); return; }
+    const handleSave = async () => {
+        if (!id) return;
         if (frequency === 'custom' && selectedDays.length === 0) {
             Alert.alert('Error', 'Please select at least one day'); return;
         }
 
         const finalDays = frequency === 'daily' ? [0, 1, 2, 3, 4, 5, 6] as DayOfWeek[] :
-            frequency === 'weekly' ? [1] as DayOfWeek[] : // Default Monday
+            frequency === 'weekly' ? [1] as DayOfWeek[] :
                 selectedDays;
 
-        await addHabit(name, icon, frequency, finalDays, effort, timeWindow);
+        await updateHabit(id, { icon, frequency, selectedDays: finalDays, effortRating: effort, timeWindow });
+        await initialize();
         router.back();
     };
+
+    if (!habit) {
+        return (
+            <View style={{ flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#6b7280' }}>Habit not found</Text>
+            </View>
+        );
+    }
 
     return (
         <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
@@ -98,13 +108,13 @@ export default function CreateHabit() {
                 <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
                     <Ionicons name="close" size={24} color="white" />
                 </TouchableOpacity>
-                <Text style={{ color: 'white', fontSize: 22, fontWeight: 'bold' }}>New Habit</Text>
+                <Text style={{ color: 'white', fontSize: 22, fontWeight: 'bold' }}>Edit {habit.name}</Text>
             </Animated.View>
 
             <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Icon Selection */}
                 <Animated.View entering={FadeInDown.delay(100).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
-                    <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>CHOOSE ICON</Text>
+                    <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>CHANGE ICON</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                         {HABIT_ICONS.map((item) => (
                             <TouchableOpacity key={item.name} onPress={() => setIcon(item.name)} style={{ width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', backgroundColor: icon === item.name ? 'rgba(0, 255, 255, 0.15)' : '#1a1a1a', borderWidth: icon === item.name ? 2 : 1, borderColor: icon === item.name ? '#6366F1' : '#333' }}>
@@ -114,14 +124,8 @@ export default function CreateHabit() {
                     </View>
                 </Animated.View>
 
-                {/* Name Input */}
-                <Animated.View entering={FadeInDown.delay(150).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
-                    <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>HABIT NAME</Text>
-                    <TextInput style={{ backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#333', borderRadius: 12, padding: 16, color: 'white', fontSize: 16 }} placeholder="e.g. Read 10 pages" placeholderTextColor="#6b7280" value={name} onChangeText={setName} />
-                </Animated.View>
-
                 {/* Frequency */}
-                <Animated.View entering={FadeInDown.delay(200).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                <Animated.View entering={FadeInDown.delay(150).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>FREQUENCY</Text>
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                         {[
@@ -135,7 +139,6 @@ export default function CreateHabit() {
                         ))}
                     </View>
 
-                    {/* Day Picker for Custom */}
                     {frequency === 'custom' && (
                         <>
                             <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
@@ -152,7 +155,7 @@ export default function CreateHabit() {
                 </Animated.View>
 
                 {/* Effort Rating */}
-                <Animated.View entering={FadeInUp.delay(250).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>EFFORT RATING</Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         {[1, 2, 3, 4, 5].map((r) => (
@@ -164,7 +167,7 @@ export default function CreateHabit() {
                 </Animated.View>
 
                 {/* Time Window */}
-                <Animated.View entering={FadeInUp.delay(300).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+                <Animated.View entering={FadeInUp.delay(250).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 24 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>TIME WINDOW</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                         {['morning', 'afternoon', 'evening', 'anytime'].map((t) => (
@@ -175,17 +178,17 @@ export default function CreateHabit() {
                     </View>
                 </Animated.View>
 
-                {/* Create Button */}
-                <Animated.View entering={FadeInUp.delay(350).duration(400)}>
-                    <TouchableOpacity onPress={handleCreate}>
+                {/* Save Button */}
+                <Animated.View entering={FadeInUp.delay(300).duration(400)}>
+                    <TouchableOpacity onPress={handleSave}>
                         <LinearGradient colors={['#6366F1', '#A855F7'] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ padding: 18, borderRadius: 16, alignItems: 'center' }}>
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>CREATE HABIT</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>SAVE CHANGES</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 </Animated.View>
             </ScrollView>
 
-            <FloatingTabBar onAddPress={() => { }} />
+            <FloatingTabBar onAddPress={() => router.push('/create')} />
         </View>
     );
 }

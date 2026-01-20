@@ -29,7 +29,7 @@ const TabButton = memo(function TabButton({ icon, isCenter, isActive, onPress }:
             <TouchableOpacity onPress={handlePress}>
                 <Animated.View style={[animatedStyle]}>
                     <LinearGradient
-                        colors={['#00FFFF', '#FF00FF'] as const}
+                        colors={['#6366F1', '#A855F7'] as const}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={{
@@ -39,7 +39,7 @@ const TabButton = memo(function TabButton({ icon, isCenter, isActive, onPress }:
                             alignItems: 'center',
                             justifyContent: 'center',
                             marginTop: -20,
-                            shadowColor: '#00FFFF',
+                            shadowColor: '#6366F1',
                             shadowOffset: { width: 0, height: 4 },
                             shadowOpacity: 0.4,
                             shadowRadius: 10,
@@ -55,7 +55,7 @@ const TabButton = memo(function TabButton({ icon, isCenter, isActive, onPress }:
     return (
         <TouchableOpacity onPress={handlePress} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 }}>
             <Animated.View style={animatedStyle}>
-                <Ionicons name={icon as any} size={24} color={isActive ? '#00FFFF' : '#6b7280'} />
+                <Ionicons name={icon as any} size={24} color={isActive ? '#6366F1' : '#6b7280'} />
             </Animated.View>
         </TouchableOpacity>
     );
