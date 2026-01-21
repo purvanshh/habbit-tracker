@@ -68,12 +68,14 @@ export default function Profile() {
                 {/* Settings */}
                 <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, overflow: 'hidden' }}>
                     {[
-                        { icon: 'notifications', label: 'Notifications', color: '#6366F1' },
-                        { icon: 'moon', label: 'Dark Mode', color: '#A855F7' },
-                        { icon: 'cloud-upload', label: 'Backup Data', color: '#6366F1' },
-                        { icon: 'information-circle', label: 'About', color: '#A855F7' },
+                        { icon: 'notifications', label: 'Notifications', color: '#6366F1', route: '/notifications' },
+                        { icon: 'information-circle', label: 'App Info', color: '#A855F7', route: '/app-info' },
                     ].map((item, i) => (
-                        <TouchableOpacity key={item.label} style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: i < 3 ? 1 : 0, borderBottomColor: '#222' }}>
+                        <TouchableOpacity
+                            key={item.label}
+                            onPress={() => item.route && router.push(item.route as any)}
+                            style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: i < 1 ? 1 : 0, borderBottomColor: '#222' }}
+                        >
                             <Ionicons name={item.icon as any} size={22} color={item.color} />
                             <Text style={{ color: 'white', marginLeft: 16, flex: 1, fontSize: 15 }}>{item.label}</Text>
                             <Ionicons name="chevron-forward" size={18} color="#6b7280" />

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { eachDayOfInterval, endOfMonth, format, isBefore, isToday, startOfDay, startOfMonth } from 'date-fns';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -77,22 +77,36 @@ export default function CalendarScreen() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [allLogs, setAllLogs] = useState<HabitLog[]>([]);
 
-    useEffect(() => {
-        getAllLogs().then(setAllLogs).catch(() => setAllLogs([]));
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            getAllLogs().then(setAllLogs).catch(console.error);
+        }, [])
+    );
 
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const firstDayOfWeek = monthStart.getDay();
     const emptyDays = Array(firstDayOfWeek).fill(null);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+
+    // Update selected date when changing months if needed, or keep independent
+    // Let's keep selectedDate independent but default to today
 
     // Get habits active for a specific date
     const getActiveHabitsForDate = (date: Date): Habit[] => {
         const dayOfWeek = date.getDay() as DayOfWeek;
+        // Reset time to compare dates properly
+        const checkDate = startOfDay(date).getTime();
+
         return habits.filter(h => {
-            if (h.createdAt > date.getTime()) return false;
-            if (h.isPaused) return false;
+            const createdAtStart = startOfDay(new Date(h.createdAt)).getTime();
+            if (createdAtStart > checkDate) return false;
+            // Check if paused
+            if (h.isPaused) {
+                // Logic for pausedUntil could be complex, assuming simplified for now
+                // Ideally we check if 'date' is within the paused window
+            }
             return h.selectedDays?.includes(dayOfWeek) ?? true;
         });
     };
@@ -102,15 +116,10 @@ export default function CalendarScreen() {
         const today = startOfDay(new Date());
         const dayStart = startOfDay(date);
 
-        // Future days
-        if (dayStart > today) {
-            return { status: 'future', progress: 0 };
-        }
+        if (dayStart > today) return { status: 'future', progress: 0 };
 
         const activeHabits = getActiveHabitsForDate(date);
-        if (activeHabits.length === 0) {
-            return { status: 'not_scheduled', progress: 0 };
-        }
+        if (activeHabits.length === 0) return { status: 'not_scheduled', progress: 0 };
 
         const dayEnd = dayStart.getTime() + 24 * 60 * 60 * 1000;
         const dayLogs = allLogs.filter(log =>
@@ -125,24 +134,37 @@ export default function CalendarScreen() {
 
         const progress = total > 0 ? done / total : 0;
 
-        if (done === 0 && isBefore(dayStart, today)) {
-            return { status: 'missed', progress: 1 }; // Full red ring for missed
-        }
-        if (done === total && completed === total) {
+        if (done === 0 && isBefore(dayStart, today)) return { status: 'missed', progress: 1 };
+        if (done >= total) {
+            if (skipped > 0 && completed === 0) return { status: 'skipped', progress: 1 }; // All skipped
+            if (skipped > 0) return { status: 'skipped', progress: 1 }; // Mixed (could be partial skipped color)
             return { status: 'completed', progress: 1 };
         }
-        if (done === total && skipped > 0) {
-            return { status: 'skipped', progress: 1 };
-        }
-        if (done > 0 && done < total) {
-            return { status: 'partial', progress };
-        }
+        if (done > 0) return { status: 'partial', progress };
+
         return { status: 'not_scheduled', progress: 0 };
+    };
+
+    // Get habit status for the selected date
+    const getHabitStatusForDate = (habitId: string, date: Date) => {
+        const dayStart = startOfDay(date).getTime();
+        const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+
+        const log = allLogs.find(l =>
+            l.habitId === habitId &&
+            l.timestamp >= dayStart &&
+            l.timestamp < dayEnd
+        );
+
+        return log ? log.status : 'pending';
     };
 
     const completedDays = daysInMonth.filter(d => getDayData(d).status === 'completed').length;
     const missedDays = daysInMonth.filter(d => getDayData(d).status === 'missed').length;
-    const completionRate = Math.round((completedDays / Math.max(completedDays + missedDays, 1)) * 100);
+
+    const activeHabitsForSelectedDate = getActiveHabitsForDate(selectedDate);
+
+    console.log('Rendering Calendar with habits:', habits.length, 'logs:', allLogs.length);
 
     return (
         <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
@@ -150,9 +172,9 @@ export default function CalendarScreen() {
                 <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>Calendar</Text>
             </Animated.View>
 
-            <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Month Navigation */}
-                <Animated.View entering={FadeInDown.delay(100).duration(400)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                <Animated.View entering={FadeInDown.delay(100).duration(400)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, paddingHorizontal: 16 }}>
                     <TouchableOpacity onPress={() => setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' }}>
                         <Ionicons name="chevron-back" size={20} color="#6366F1" />
                     </TouchableOpacity>
@@ -163,35 +185,19 @@ export default function CalendarScreen() {
                 </Animated.View>
 
                 {/* Stats */}
-                <Animated.View entering={FadeInDown.delay(150).duration(400)} style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                <Animated.View entering={FadeInDown.delay(150).duration(400)} style={{ flexDirection: 'row', gap: 12, marginBottom: 24, paddingHorizontal: 16 }}>
                     <View style={{ flex: 1, backgroundColor: '#111', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.2)' }}>
-                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>COMPLETED</Text>
+                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>COMPLETED DAYS</Text>
                         <Text style={{ color: '#10B981', fontSize: 28, fontWeight: 'bold' }}>{completedDays}</Text>
                     </View>
                     <View style={{ flex: 1, backgroundColor: '#111', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)' }}>
-                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>MISSED</Text>
+                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 1 }}>MISSED DAYS</Text>
                         <Text style={{ color: '#EF4444', fontSize: 28, fontWeight: 'bold' }}>{missedDays}</Text>
                     </View>
                 </Animated.View>
 
-                {/* Legend */}
-                <Animated.View entering={FadeInDown.delay(180).duration(400)} style={{ flexDirection: 'row', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#10B981', marginRight: 6 }} />
-                        <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Done</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#F59E0B', marginRight: 6 }} />
-                        <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Skipped</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#EF4444', marginRight: 6 }} />
-                        <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Missed</Text>
-                    </View>
-                </Animated.View>
-
                 {/* Calendar Grid */}
-                <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 16 }}>
+                <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ backgroundColor: '#111', borderRadius: 24, padding: 16, marginHorizontal: 16, marginBottom: 24 }}>
                     <View style={{ flexDirection: 'row', marginBottom: 12 }}>
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                             <View key={day} style={{ width: '14.28%', alignItems: 'center' }}>
@@ -203,17 +209,63 @@ export default function CalendarScreen() {
                         {emptyDays.map((_, i) => <View key={`e-${i}`} style={{ width: '14.28%', aspectRatio: 1 }} />)}
                         {daysInMonth.map(day => {
                             const { status, progress } = getDayData(day);
+                            const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
                             return (
-                                <DayCircle
+                                <TouchableOpacity
                                     key={day.toISOString()}
-                                    day={parseInt(format(day, 'd'))}
-                                    status={status}
-                                    progress={progress}
-                                    isCurrentDay={isToday(day)}
-                                />
+                                    style={{ width: '14.28%', aspectRatio: 1, padding: 2 }}
+                                    onPress={() => setSelectedDate(day)}
+                                >
+                                    <View style={{
+                                        flex: 1,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                                        borderRadius: 8
+                                    }}>
+                                        <DayCircle
+                                            day={parseInt(format(day, 'd'))}
+                                            status={status}
+                                            progress={progress}
+                                            isCurrentDay={isToday(day)}
+                                        />
+                                    </View>
+                                </TouchableOpacity>
                             );
                         })}
                     </View>
+                </Animated.View>
+
+                {/* Selected Date Habits */}
+                <Animated.View entering={FadeInUp.delay(300).duration(400)} style={{ paddingHorizontal: 16 }}>
+                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>
+                        {format(selectedDate, 'EEEE, MMMM do')}
+                    </Text>
+
+                    {activeHabitsForSelectedDate.length === 0 ? (
+                        <Text style={{ color: '#6b7280', fontStyle: 'italic' }}>No habits scheduled for this day.</Text>
+                    ) : (
+                        <View style={{ gap: 12 }}>
+                            {activeHabitsForSelectedDate.map(habit => {
+                                const status = getHabitStatusForDate(habit.id, selectedDate);
+                                return (
+                                    <View key={habit.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#111', padding: 16, borderRadius: 16 }}>
+                                        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                                            <Ionicons name={habit.icon as any} size={20} color="#6366F1" />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>{habit.name}</Text>
+                                            <Text style={{ color: '#6b7280', fontSize: 12, textTransform: 'capitalize' }}>{habit.timeWindow}</Text>
+                                        </View>
+                                        {status === 'completed' && <Ionicons name="checkmark-circle" size={24} color="#10B981" />}
+                                        {status === 'skipped' && <Ionicons name="play-skip-forward-circle" size={24} color="#F59E0B" />}
+                                        {status === 'failed' && <Ionicons name="close-circle" size={24} color="#EF4444" />}
+                                        {status === 'pending' && <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#333' }} />}
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    )}
                 </Animated.View>
             </ScrollView>
 

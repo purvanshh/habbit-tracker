@@ -188,7 +188,7 @@ export default function EditHabit() {
                 </Animated.View>
             </ScrollView>
 
-            <FloatingTabBar onAddPress={() => router.push('/create')} />
+            <FloatingTabBar onAddPress={() => router.push('/create' as any)} />
         </View>
     );
 }

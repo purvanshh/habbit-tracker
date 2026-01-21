@@ -89,3 +89,13 @@ export const getWeekNumber = (date: Date = new Date()): number => {
     const oneWeek = 7 * 24 * 60 * 60 * 1000;
     return Math.floor(diff / oneWeek);
 };
+
+export interface AppNotification {
+    id: string;
+    userId: string;
+    title: string;
+    message: string;
+    type: 'info' | 'warning' | 'success';
+    isRead: boolean;
+    createdAt: number;
+}

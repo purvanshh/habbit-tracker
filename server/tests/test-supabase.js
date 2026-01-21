@@ -4,7 +4,7 @@
 
 const { createClient } = require("@supabase/supabase-js");
 const path = require('path');
-require("dotenv").config({ path: path.resolve(__dirname, '../server/.env') });
+require("dotenv").config({ path: path.resolve(__dirname, '../.env') });
 
 async function testSupabaseConnection() {
   console.log("🔗 Testing Supabase Connection...\n");

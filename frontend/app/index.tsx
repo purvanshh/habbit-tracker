@@ -8,7 +8,7 @@ import { DotGrid } from '../src/components/DotGrid';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
 import { HabitCard } from '../src/components/HabitCard';
 import { SwipeSlider } from '../src/components/SwipeSlider';
-import { getLogsForHabit, isCompletedToday } from '../src/core/db';
+import { getLogsForHabit } from '../src/core/db';
 import { HabitLog } from '../src/core/types';
 import { useHabitStore } from '../src/store/useHabitStore';
 
@@ -21,12 +21,31 @@ export default function Dashboard() {
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
   const [currentLogs, setCurrentLogs] = useState<HabitLog[]>([]);
   const [completedToday, setCompletedToday] = useState(false);
+  const [completionStatus, setCompletionStatus] = useState<'completed' | 'skipped' | null>(null);
   const [showCompletedMessage, setShowCompletedMessage] = useState(false);
 
   useEffect(() => {
     if (selectedHabitId) {
-      getLogsForHabit(selectedHabitId).then(setCurrentLogs);
-      isCompletedToday(selectedHabitId).then(setCompletedToday);
+      getLogsForHabit(selectedHabitId).then(logs => {
+        setCurrentLogs(logs);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTimestamp = today.getTime();
+
+        const todaysLog = logs.find(l => {
+          const logDate = new Date(l.timestamp);
+          logDate.setHours(0, 0, 0, 0);
+          return logDate.getTime() === todayTimestamp;
+        });
+
+        if (todaysLog) {
+          setCompletedToday(true);
+          setCompletionStatus(todaysLog.status as any);
+        } else {
+          setCompletedToday(false);
+          setCompletionStatus(null);
+        }
+      });
     } else if (habits.length > 0) {
       setSelectedHabitId(habits[0].id);
     }
@@ -48,6 +67,7 @@ export default function Dashboard() {
       const updatedLogs = await getLogsForHabit(selectedHabit.id);
       setCurrentLogs(updatedLogs);
       setCompletedToday(true);
+      setCompletionStatus('completed');
       setShowCompletedMessage(true);
       setTimeout(() => setShowCompletedMessage(false), 2000);
     }
@@ -126,7 +146,7 @@ export default function Dashboard() {
               <>
                 <HabitCard
                   habit={selectedHabit}
-                  onEdit={() => router.push({ pathname: '/edit-habit', params: { id: selectedHabit.id } })}
+                  onEdit={() => router.push({ pathname: '/edit-habit', params: { id: selectedHabit.id } } as any)}
                   onDelete={() => {
                     removeHabit(selectedHabit.id);
                     if (habits.length > 1) {
@@ -144,7 +164,7 @@ export default function Dashboard() {
                 {/* Weekly Report Banner */}
                 <Animated.View entering={FadeInUp.delay(650).duration(500)} style={{ marginTop: 16 }}>
                   <TouchableOpacity
-                    onPress={() => router.push('/weekly-report')}
+                    onPress={() => router.push('/weekly-report' as any)}
                     style={{ backgroundColor: '#111', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#222' }}
                   >
                     <Ionicons name="document-text" size={24} color="#6366F1" />
@@ -186,6 +206,7 @@ export default function Dashboard() {
               const success = await skipHabit(selectedHabit.id);
               if (success) {
                 setCompletedToday(true);
+                setCompletionStatus('skipped');
                 setShowCompletedMessage(true);
                 setTimeout(() => setShowCompletedMessage(false), 2000);
               }
@@ -197,14 +218,16 @@ export default function Dashboard() {
 
       {showCompletedMessage && (
         <Animated.View entering={FadeIn.duration(300)} style={{ position: 'absolute', bottom: 110, left: 0, right: 0, alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#111', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#6366F1' }}>
-            <Ionicons name="checkmark-circle" size={20} color="#6366F1" />
-            <Text style={{ color: '#6366F1', marginLeft: 8, fontWeight: 'bold' }}>Completed Today!</Text>
+          <View style={{ backgroundColor: '#111', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: completionStatus === 'skipped' ? '#F59E0B' : '#6366F1' }}>
+            <Ionicons name={completionStatus === 'skipped' ? "alert-circle" : "checkmark-circle"} size={20} color={completionStatus === 'skipped' ? "#F59E0B" : "#6366F1"} />
+            <Text style={{ color: completionStatus === 'skipped' ? '#F59E0B' : '#6366F1', marginLeft: 8, fontWeight: 'bold' }}>
+              {completionStatus === 'skipped' ? 'Skipped Today' : 'Completed Today!'}
+            </Text>
           </View>
         </Animated.View>
       )}
 
-      <FloatingTabBar onAddPress={() => router.push('/create')} />
+      <FloatingTabBar onAddPress={() => router.push('/create' as any)} />
     </View>
   );
 }

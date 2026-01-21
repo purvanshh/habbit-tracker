@@ -1,0 +1,109 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { supabase } from '../src/lib/supabase';
+
+export default function LoginScreen() {
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
+        setLoading(true);
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        if (error) {
+            if (error.message.includes("Email not confirmed")) {
+                Alert.alert(
+                    'Verification Required',
+                    'Please check your email and click the confirmation link to activate your account.'
+                );
+            } else {
+                Alert.alert('Login Failed', error.message);
+            }
+        }
+        // Success is handled by the auth state listener in _layout
+        setLoading(false);
+    };
+
+    return (
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1, backgroundColor: '#0A0A0A' }}
+        >
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingTop: insets.top, paddingHorizontal: 24 }}
+                keyboardShouldPersistTaps="handled"
+            >
+                <Animated.View entering={FadeInDown.duration(600).springify()} style={{ alignItems: 'center', marginBottom: 40 }}>
+                    <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                        <Ionicons name="barbell" size={40} color="#6366F1" />
+                    </View>
+                    <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>Welcome Back</Text>
+                    <Text style={{ color: '#9ca3af', marginTop: 8 }}>Sign in to continue your streak</Text>
+                </Animated.View>
+
+                <Animated.View entering={FadeInUp.delay(200).duration(600).springify()}>
+                    <View style={{ marginBottom: 16 }}>
+                        <Text style={{ color: '#6b7280', fontSize: 12, marginBottom: 8, letterSpacing: 1 }}>EMAIL</Text>
+                        <TextInput
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="habit@tracker.com"
+                            placeholderTextColor="#4b5563"
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            style={{ backgroundColor: '#111', borderRadius: 12, padding: 16, color: 'white', borderWidth: 1, borderColor: '#222' }}
+                        />
+                    </View>
+
+                    <View style={{ marginBottom: 32 }}>
+                        <Text style={{ color: '#6b7280', fontSize: 12, marginBottom: 8, letterSpacing: 1 }}>PASSWORD</Text>
+                        <TextInput
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="••••••••"
+                            placeholderTextColor="#4b5563"
+                            secureTextEntry
+                            style={{ backgroundColor: '#111', borderRadius: 12, padding: 16, color: 'white', borderWidth: 1, borderColor: '#222' }}
+                        />
+                    </View>
+
+                    <TouchableOpacity onPress={handleLogin} disabled={loading}>
+                        <LinearGradient
+                            colors={['#6366F1', '#A855F7'] as const}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={{ padding: 16, borderRadius: 12, alignItems: 'center', opacity: loading ? 0.7 : 1 }}
+                        >
+                            {loading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>SIGN IN</Text>}
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
+                        <Text style={{ color: '#9ca3af' }}>Don't have an account? </Text>
+                        <Link href="/signup" asChild>
+                            <TouchableOpacity>
+                                <Text style={{ color: '#6366F1', fontWeight: 'bold' }}>Sign Up</Text>
+                            </TouchableOpacity>
+                        </Link>
+                    </View>
+                </Animated.View>
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
+}

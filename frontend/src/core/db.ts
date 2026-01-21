@@ -1,5 +1,6 @@
+
 import { supabase } from '../lib/supabase';
-import { getWeekNumber, Habit, HabitAdjustment, HabitLog, WeeklyReport } from './types';
+import { AppNotification, getWeekNumber, Habit, HabitAdjustment, HabitLog, WeeklyReport } from './types';
 
 // Removed SQLite initialization specifically
 // Supabase client is initialized in src/lib/supabase.ts
@@ -388,5 +389,61 @@ export const getAdjustmentsForHabit = async (habitId: string): Promise<HabitAdju
     } catch (error) {
         console.error('getAdjustmentsForHabit error:', error);
         return [];
+    }
+};
+
+export const getNotifications = async (): Promise<AppNotification[]> => {
+    try {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(row => ({
+            id: row.id,
+            userId: row.user_id,
+            title: row.title,
+            message: row.message,
+            type: row.type as any,
+            isRead: row.is_read,
+            createdAt: new Date(row.created_at).getTime()
+        }));
+    } catch (error) {
+        console.error('getNotifications error:', error);
+        return [];
+    }
+};
+
+export const markNotificationRead = async (id: string) => {
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', id);
+
+        if (error) throw error;
+    } catch (error) {
+        console.error('markNotificationRead error:', error);
+    }
+};
+
+export const createNotification = async (title: string, message: string, type: 'info' | 'warning' | 'success' = 'info') => {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return; // Silent fail if no user
+
+        const { error } = await supabase
+            .from('notifications')
+            .insert({
+                user_id: user.id,
+                title,
+                message,
+                type
+            });
+
+        if (error) throw error;
+    } catch (error) {
+        console.error('createNotification error:', error);
     }
 };
