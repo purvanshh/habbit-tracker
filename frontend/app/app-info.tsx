@@ -45,11 +45,11 @@ export default function AppInfoScreen() {
                     </Text>
                 </View>
 
-                <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20, gap: 24 }}>
-                    <TouchableOpacity>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20, gap: 12 }}>
+                    <TouchableOpacity onPress={() => router.push('/privacy-policy' as any)} style={{ padding: 12 }}>
                         <Text style={{ color: '#6b7280', fontSize: 14 }}>Privacy Policy</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.push('/terms-of-service' as any)} style={{ padding: 12 }}>
                         <Text style={{ color: '#6b7280', fontSize: 14 }}>Terms of Service</Text>
                     </TouchableOpacity>
                 </View>

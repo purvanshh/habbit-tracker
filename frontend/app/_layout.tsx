@@ -90,6 +90,12 @@ export default function RootLayout() {
           <Stack.Screen name="report" />
           <Stack.Screen name="calendar" />
           <Stack.Screen name="profile" />
+          <Stack.Screen name="edit-habit" />
+          <Stack.Screen name="weekly-report" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="app-info" />
+          <Stack.Screen name="privacy-policy" />
+          <Stack.Screen name="terms-of-service" />
         </Stack>
       </QueryClientProvider>
     </GestureHandlerRootView>

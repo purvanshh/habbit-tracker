@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Stop, LinearGradient as SvgGradient } from 'react-native-svg';
@@ -70,15 +70,16 @@ export default function Profile() {
                     {[
                         { icon: 'notifications', label: 'Notifications', color: '#6366F1', route: '/notifications' },
                         { icon: 'information-circle', label: 'App Info', color: '#A855F7', route: '/app-info' },
+                        { icon: 'globe-outline', label: 'Contact Developer', color: '#10B981', action: () => Linking.openURL('https://purvanshsahu.site') },
                     ].map((item, i) => (
                         <TouchableOpacity
                             key={item.label}
-                            onPress={() => item.route && router.push(item.route as any)}
-                            style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: i < 1 ? 1 : 0, borderBottomColor: '#222' }}
+                            onPress={() => item.action ? item.action() : item.route && router.push(item.route as any)}
+                            style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: i < 2 ? 1 : 0, borderBottomColor: '#222' }}
                         >
                             <Ionicons name={item.icon as any} size={22} color={item.color} />
                             <Text style={{ color: 'white', marginLeft: 16, flex: 1, fontSize: 15 }}>{item.label}</Text>
-                            <Ionicons name="chevron-forward" size={18} color="#6b7280" />
+                            <Ionicons name={item.route ? "chevron-forward" : "open-outline"} size={18} color="#6b7280" />
                         </TouchableOpacity>
                     ))}
                 </Animated.View>
