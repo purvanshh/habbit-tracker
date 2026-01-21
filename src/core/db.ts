@@ -1,114 +1,48 @@
-import * as SQLite from 'expo-sqlite';
-import { Habit, HabitAdjustment, HabitLog, WeeklyReport, getWeekNumber } from './types';
+import { supabase } from '../lib/supabase';
+import { getWeekNumber, Habit, HabitAdjustment, HabitLog, WeeklyReport } from './types';
 
-let db: SQLite.SQLiteDatabase | null = null;
-let initPromise: Promise<SQLite.SQLiteDatabase | null> | null = null;
-
-const DB_NAME = 'habits_v3.db';
-
-const ensureDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
-    if (db) return db;
-
-    if (!initPromise) {
-        initPromise = (async () => {
-            try {
-                const database = await SQLite.openDatabaseAsync(DB_NAME);
-
-                await database.execAsync(`PRAGMA journal_mode = WAL;`);
-
-                await database.execAsync(`
-                    CREATE TABLE IF NOT EXISTS habits (
-                        id TEXT PRIMARY KEY NOT NULL,
-                        name TEXT NOT NULL,
-                        icon TEXT DEFAULT 'barbell',
-                        frequency TEXT NOT NULL,
-                        selectedDays TEXT DEFAULT '[]',
-                        effortRating INTEGER NOT NULL,
-                        createdAt INTEGER NOT NULL,
-                        streak INTEGER DEFAULT 0,
-                        timeWindow TEXT NOT NULL,
-                        isPaused INTEGER DEFAULT 0,
-                        pausedUntil INTEGER,
-                        skipsUsedThisWeek INTEGER DEFAULT 0,
-                        maxSkipsPerWeek INTEGER DEFAULT 2,
-                        lastSkipResetWeek INTEGER DEFAULT 0
-                    );
-                `);
-
-                await database.execAsync(`
-                    CREATE TABLE IF NOT EXISTS logs (
-                        id TEXT PRIMARY KEY NOT NULL,
-                        habitId TEXT NOT NULL,
-                        timestamp INTEGER NOT NULL,
-                        status TEXT NOT NULL,
-                        dayOfWeek INTEGER NOT NULL
-                    );
-                `);
-
-                await database.execAsync(`
-                    CREATE TABLE IF NOT EXISTS weekly_reports (
-                        id TEXT PRIMARY KEY NOT NULL,
-                        weekStart INTEGER NOT NULL,
-                        weekEnd INTEGER NOT NULL,
-                        generatedAt INTEGER NOT NULL,
-                        data TEXT NOT NULL
-                    );
-                `);
-
-                await database.execAsync(`
-                    CREATE TABLE IF NOT EXISTS habit_adjustments (
-                        id TEXT PRIMARY KEY NOT NULL,
-                        habitId TEXT NOT NULL,
-                        timestamp INTEGER NOT NULL,
-                        type TEXT NOT NULL,
-                        previousValue TEXT,
-                        newValue TEXT,
-                        wasAutoApplied INTEGER DEFAULT 0
-                    );
-                `);
-
-                db = database;
-                return database;
-            } catch (error) {
-                console.error('Database initialization failed:', error);
-                db = null;
-                initPromise = null;
-                throw error;
-            }
-        })();
-    }
-
-    const result = await initPromise;
-    if (!result) throw new Error('Database initialization failed');
-    return result;
-};
+// Removed SQLite initialization specifically
+// Supabase client is initialized in src/lib/supabase.ts
 
 export const initDatabase = async () => {
-    try {
-        await ensureDatabase();
-    } catch (error) {
-        console.error('Failed to initialize database:', error);
-    }
+    // No-op for Supabase as client is lazy loaded
+    console.log('Supabase client ready');
 };
 
 export const getHabits = async (): Promise<Habit[]> => {
     try {
-        const database = await ensureDatabase();
-        const rows = await database.getAllAsync<any>('SELECT * FROM habits');
+        const { data: rows, error } = await supabase
+            .from('habits')
+            .select('*');
+
+        if (error) throw error;
+        if (!rows) return [];
+
         const currentWeek = getWeekNumber();
 
         return rows.map(row => {
             // Reset skips if new week
             const skipsUsed = row.lastSkipResetWeek === currentWeek ? row.skipsUsedThisWeek : 0;
 
+            // In Supabase, selectedDays is already an array, no JSON.parse needed if defined as array in schema
+            // But we defined it as INTEGER[] in SQL, so it returns number[]
+            // We need to cast it to DayOfWeek[] if needed, or just keep as is
+
             return {
-                ...row,
+                id: row.id,
+                name: row.name,
                 icon: row.icon || 'barbell',
-                selectedDays: JSON.parse(row.selectedDays || '[]'),
-                isPaused: row.isPaused === 1,
-                skipsUsedThisWeek: skipsUsed,
-                maxSkipsPerWeek: row.maxSkipsPerWeek || 2,
-                lastSkipResetWeek: row.lastSkipResetWeek || currentWeek,
+                frequency: row.frequency,
+                selectedDays: row.selected_days || [0, 1, 2, 3, 4, 5, 6], // Map snake_case to camelCase
+                effortRating: row.effort_rating,
+                timeWindow: row.time_window,
+                createdAt: new Date(row.created_at).getTime(),
+                streak: row.streak,
+                isPaused: row.is_paused,
+                pausedUntil: row.paused_until ? new Date(row.paused_until).getTime() : undefined,
+                skipsUsedThisWeek: row.skips_used_this_week,
+                maxSkipsPerWeek: row.max_skips_per_week || 2,
+                lastSkipResetWeek: row.last_skip_reset_week || currentWeek,
             };
         });
     } catch (error) {
@@ -119,11 +53,30 @@ export const getHabits = async (): Promise<Habit[]> => {
 
 export const addHabitToDB = async (habit: Habit) => {
     try {
-        const database = await ensureDatabase();
-        await database.runAsync(
-            'INSERT INTO habits (id, name, icon, frequency, selectedDays, effortRating, createdAt, streak, timeWindow, isPaused, pausedUntil, skipsUsedThisWeek, maxSkipsPerWeek, lastSkipResetWeek) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            habit.id, habit.name, habit.icon || 'barbell', habit.frequency, JSON.stringify(habit.selectedDays || []), habit.effortRating, habit.createdAt, habit.streak, habit.timeWindow, habit.isPaused ? 1 : 0, habit.pausedUntil ?? null, habit.skipsUsedThisWeek || 0, habit.maxSkipsPerWeek || 2, habit.lastSkipResetWeek || getWeekNumber()
-        );
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No user logged in');
+
+        const { error } = await supabase
+            .from('habits')
+            .insert({
+                id: habit.id,
+                user_id: user.id,
+                name: habit.name,
+                icon: habit.icon || 'barbell',
+                frequency: habit.frequency,
+                selected_days: habit.selectedDays || [],
+                effort_rating: habit.effortRating,
+                time_window: habit.timeWindow,
+                created_at: new Date(habit.createdAt).toISOString(),
+                streak: habit.streak,
+                is_paused: habit.isPaused,
+                paused_until: habit.pausedUntil ? new Date(habit.pausedUntil).toISOString() : null,
+                skips_used_this_week: habit.skipsUsedThisWeek || 0,
+                max_skips_per_week: habit.maxSkipsPerWeek || 2,
+                last_skip_reset_week: habit.lastSkipResetWeek || getWeekNumber()
+            });
+
+        if (error) throw error;
     } catch (error) {
         console.error('addHabitToDB error:', error);
         throw error;
@@ -132,26 +85,29 @@ export const addHabitToDB = async (habit: Habit) => {
 
 export const updateHabit = async (habitId: string, updates: Partial<Habit>) => {
     try {
-        const database = await ensureDatabase();
-        const fields: string[] = [];
-        const values: any[] = [];
+        const dbUpdates: any = {};
 
-        if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
-        if (updates.icon !== undefined) { fields.push('icon = ?'); values.push(updates.icon); }
-        if (updates.frequency !== undefined) { fields.push('frequency = ?'); values.push(updates.frequency); }
-        if (updates.selectedDays !== undefined) { fields.push('selectedDays = ?'); values.push(JSON.stringify(updates.selectedDays)); }
-        if (updates.effortRating !== undefined) { fields.push('effortRating = ?'); values.push(updates.effortRating); }
-        if (updates.timeWindow !== undefined) { fields.push('timeWindow = ?'); values.push(updates.timeWindow); }
-        if (updates.isPaused !== undefined) { fields.push('isPaused = ?'); values.push(updates.isPaused ? 1 : 0); }
-        if (updates.pausedUntil !== undefined) { fields.push('pausedUntil = ?'); values.push(updates.pausedUntil); }
-        if (updates.streak !== undefined) { fields.push('streak = ?'); values.push(updates.streak); }
-        if (updates.skipsUsedThisWeek !== undefined) { fields.push('skipsUsedThisWeek = ?'); values.push(updates.skipsUsedThisWeek); }
-        if (updates.lastSkipResetWeek !== undefined) { fields.push('lastSkipResetWeek = ?'); values.push(updates.lastSkipResetWeek); }
+        // Map camelCase to snake_case
+        if (updates.name !== undefined) dbUpdates.name = updates.name;
+        if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
+        if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
+        if (updates.selectedDays !== undefined) dbUpdates.selected_days = updates.selectedDays;
+        if (updates.effortRating !== undefined) dbUpdates.effort_rating = updates.effortRating;
+        if (updates.timeWindow !== undefined) dbUpdates.time_window = updates.timeWindow;
+        if (updates.isPaused !== undefined) dbUpdates.is_paused = updates.isPaused;
+        if (updates.pausedUntil !== undefined) dbUpdates.paused_until = updates.pausedUntil ? new Date(updates.pausedUntil).toISOString() : null;
+        if (updates.streak !== undefined) dbUpdates.streak = updates.streak;
+        if (updates.skipsUsedThisWeek !== undefined) dbUpdates.skips_used_this_week = updates.skipsUsedThisWeek;
+        if (updates.lastSkipResetWeek !== undefined) dbUpdates.last_skip_reset_week = updates.lastSkipResetWeek;
 
-        if (fields.length > 0) {
-            values.push(habitId);
-            await database.runAsync(`UPDATE habits SET ${fields.join(', ')} WHERE id = ?`, ...values);
-        }
+        // We handle updated_at automatically via DB trigger
+
+        const { error } = await supabase
+            .from('habits')
+            .update(dbUpdates)
+            .eq('id', habitId);
+
+        if (error) throw error;
     } catch (error) {
         console.error('updateHabit error:', error);
     }
@@ -159,11 +115,21 @@ export const updateHabit = async (habitId: string, updates: Partial<Habit>) => {
 
 export const logCompletionToDB = async (log: HabitLog) => {
     try {
-        const database = await ensureDatabase();
-        await database.runAsync(
-            'INSERT INTO logs (id, habitId, timestamp, status, dayOfWeek) VALUES (?, ?, ?, ?, ?)',
-            log.id, log.habitId, log.timestamp, log.status, log.dayOfWeek
-        );
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No user logged in');
+
+        const { error } = await supabase
+            .from('habit_logs')
+            .insert({
+                id: log.id,
+                habit_id: log.habitId,
+                user_id: user.id,
+                timestamp: new Date(log.timestamp).toISOString(),
+                status: log.status,
+                day_of_week: log.dayOfWeek
+            });
+
+        if (error) throw error;
     } catch (error) {
         console.error('logCompletionToDB error:', error);
         throw error;
@@ -172,8 +138,12 @@ export const logCompletionToDB = async (log: HabitLog) => {
 
 export const updateHabitStreak = async (habitId: string, streak: number) => {
     try {
-        const database = await ensureDatabase();
-        await database.runAsync('UPDATE habits SET streak = ? WHERE id = ?', streak, habitId);
+        const { error } = await supabase
+            .from('habits')
+            .update({ streak })
+            .eq('id', habitId);
+
+        if (error) throw error;
     } catch (error) {
         console.error('updateHabitStreak error:', error);
     }
@@ -181,8 +151,20 @@ export const updateHabitStreak = async (habitId: string, streak: number) => {
 
 export const getLogsForHabit = async (habitId: string): Promise<HabitLog[]> => {
     try {
-        const database = await ensureDatabase();
-        return await database.getAllAsync<HabitLog>('SELECT * FROM logs WHERE habitId = ? ORDER BY timestamp DESC', habitId);
+        const { data, error } = await supabase
+            .from('habit_logs')
+            .select('*')
+            .eq('habit_id', habitId)
+            .order('timestamp', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(row => ({
+            id: row.id,
+            habitId: row.habit_id,
+            timestamp: new Date(row.timestamp).getTime(),
+            status: row.status as any,
+            dayOfWeek: row.day_of_week
+        }));
     } catch (error) {
         console.error('getLogsForHabit error:', error);
         return [];
@@ -191,17 +173,21 @@ export const getLogsForHabit = async (habitId: string): Promise<HabitLog[]> => {
 
 export const isCompletedToday = async (habitId: string): Promise<boolean> => {
     try {
-        const database = await ensureDatabase();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const startOfDay = today.getTime();
-        const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
+        const startOfDay = today.toISOString();
+        const endOfDay = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
-        const result = await database.getFirstAsync<{ count: number }>(
-            'SELECT COUNT(*) as count FROM logs WHERE habitId = ? AND timestamp >= ? AND timestamp < ? AND (status = ? OR status = ?)',
-            habitId, startOfDay, endOfDay, 'completed', 'skipped'
-        );
-        return (result?.count ?? 0) > 0;
+        const { count, error } = await supabase
+            .from('habit_logs')
+            .select('*', { count: 'exact', head: true })
+            .eq('habit_id', habitId)
+            .gte('timestamp', startOfDay)
+            .lt('timestamp', endOfDay)
+            .in('status', ['completed', 'skipped']);
+
+        if (error) throw error;
+        return (count || 0) > 0;
     } catch (error) {
         console.error('isCompletedToday error:', error);
         return false;
@@ -210,8 +196,19 @@ export const isCompletedToday = async (habitId: string): Promise<boolean> => {
 
 export const getAllLogs = async (): Promise<HabitLog[]> => {
     try {
-        const database = await ensureDatabase();
-        return await database.getAllAsync<HabitLog>('SELECT * FROM logs ORDER BY timestamp DESC');
+        const { data, error } = await supabase
+            .from('habit_logs')
+            .select('*')
+            .order('timestamp', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(row => ({
+            id: row.id,
+            habitId: row.habit_id,
+            timestamp: new Date(row.timestamp).getTime(),
+            status: row.status as any,
+            dayOfWeek: row.day_of_week
+        }));
     } catch (error) {
         console.error('getAllLogs error:', error);
         return [];
@@ -220,11 +217,21 @@ export const getAllLogs = async (): Promise<HabitLog[]> => {
 
 export const getLogsForWeek = async (weekStart: number, weekEnd: number): Promise<HabitLog[]> => {
     try {
-        const database = await ensureDatabase();
-        return await database.getAllAsync<HabitLog>(
-            'SELECT * FROM logs WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp DESC',
-            weekStart, weekEnd
-        );
+        const { data, error } = await supabase
+            .from('habit_logs')
+            .select('*')
+            .gte('timestamp', new Date(weekStart).toISOString())
+            .lt('timestamp', new Date(weekEnd).toISOString())
+            .order('timestamp', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(row => ({
+            id: row.id,
+            habitId: row.habit_id,
+            timestamp: new Date(row.timestamp).getTime(),
+            status: row.status as any,
+            dayOfWeek: row.day_of_week
+        }));
     } catch (error) {
         console.error('getLogsForWeek error:', error);
         return [];
@@ -233,9 +240,13 @@ export const getLogsForWeek = async (weekStart: number, weekEnd: number): Promis
 
 export const deleteHabit = async (habitId: string) => {
     try {
-        const database = await ensureDatabase();
-        await database.runAsync('DELETE FROM logs WHERE habitId = ?', habitId);
-        await database.runAsync('DELETE FROM habits WHERE id = ?', habitId);
+        // Cascade delete handles logs
+        const { error } = await supabase
+            .from('habits')
+            .delete()
+            .eq('id', habitId);
+
+        if (error) throw error;
     } catch (error) {
         console.error('deleteHabit error:', error);
         throw error;
@@ -244,11 +255,28 @@ export const deleteHabit = async (habitId: string) => {
 
 export const saveWeeklyReport = async (report: WeeklyReport) => {
     try {
-        const database = await ensureDatabase();
-        await database.runAsync(
-            'INSERT OR REPLACE INTO weekly_reports (id, weekStart, weekEnd, generatedAt, data) VALUES (?, ?, ?, ?, ?)',
-            report.id, report.weekStart, report.weekEnd, report.generatedAt, JSON.stringify(report)
-        );
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No user logged in');
+
+        const { error } = await supabase
+            .from('weekly_reports')
+            .upsert({
+                id: report.id,
+                user_id: user.id,
+                week_start: report.weekStart,
+                week_end: report.weekEnd,
+                generated_at: report.generatedAt,
+                total_completions: report.totalCompletions,
+                total_missed: report.totalMissed,
+                overall_success_rate: report.overallSuccessRate,
+                best_day: report.bestDay,
+                worst_day: report.worstDay,
+                habit_metrics: report.habitMetrics,
+                at_risk_habits: report.atRiskHabits,
+                suggestions: report.suggestions
+            });
+
+        if (error) throw error;
     } catch (error) {
         console.error('saveWeeklyReport error:', error);
     }
@@ -256,11 +284,27 @@ export const saveWeeklyReport = async (report: WeeklyReport) => {
 
 export const getWeeklyReports = async (limit = 4): Promise<WeeklyReport[]> => {
     try {
-        const database = await ensureDatabase();
-        const rows = await database.getAllAsync<{ data: string }>(
-            'SELECT data FROM weekly_reports ORDER BY weekStart DESC LIMIT ?', limit
-        );
-        return rows.map(row => JSON.parse(row.data));
+        const { data, error } = await supabase
+            .from('weekly_reports')
+            .select('*')
+            .order('week_start', { ascending: false })
+            .limit(limit);
+
+        if (error) throw error;
+        return (data || []).map(row => ({
+            id: row.id,
+            weekStart: Number(row.week_start),
+            weekEnd: Number(row.week_end),
+            generatedAt: Number(row.generated_at),
+            totalCompletions: row.total_completions,
+            totalMissed: row.total_missed,
+            overallSuccessRate: row.overall_success_rate,
+            bestDay: row.best_day,
+            worstDay: row.worst_day,
+            habitMetrics: row.habit_metrics,
+            atRiskHabits: row.at_risk_habits,
+            suggestions: row.suggestions
+        }));
     } catch (error) {
         console.error('getWeeklyReports error:', error);
         return [];
@@ -269,11 +313,30 @@ export const getWeeklyReports = async (limit = 4): Promise<WeeklyReport[]> => {
 
 export const getLatestWeeklyReport = async (): Promise<WeeklyReport | null> => {
     try {
-        const database = await ensureDatabase();
-        const row = await database.getFirstAsync<{ data: string }>(
-            'SELECT data FROM weekly_reports ORDER BY weekStart DESC LIMIT 1'
-        );
-        return row ? JSON.parse(row.data) : null;
+        const { data, error } = await supabase
+            .from('weekly_reports')
+            .select('*')
+            .order('week_start', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error || !data) return null;
+
+        const row = data;
+        return {
+            id: row.id,
+            weekStart: Number(row.week_start),
+            weekEnd: Number(row.week_end),
+            generatedAt: Number(row.generated_at),
+            totalCompletions: row.total_completions,
+            totalMissed: row.total_missed,
+            overallSuccessRate: row.overall_success_rate,
+            bestDay: row.best_day,
+            worstDay: row.worst_day,
+            habitMetrics: row.habit_metrics,
+            atRiskHabits: row.at_risk_habits,
+            suggestions: row.suggestions
+        };
     } catch (error) {
         console.error('getLatestWeeklyReport error:', error);
         return null;
@@ -282,11 +345,23 @@ export const getLatestWeeklyReport = async (): Promise<WeeklyReport | null> => {
 
 export const saveAdjustment = async (adjustment: HabitAdjustment) => {
     try {
-        const database = await ensureDatabase();
-        await database.runAsync(
-            'INSERT INTO habit_adjustments (id, habitId, timestamp, type, previousValue, newValue, wasAutoApplied) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            adjustment.id, adjustment.habitId, adjustment.timestamp, adjustment.type, adjustment.previousValue, adjustment.newValue, adjustment.wasAutoApplied ? 1 : 0
-        );
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No user logged in');
+
+        const { error } = await supabase
+            .from('habit_adjustments')
+            .insert({
+                id: adjustment.id,
+                habit_id: adjustment.habitId,
+                user_id: user.id,
+                timestamp: adjustment.timestamp,
+                type: adjustment.type,
+                previous_value: adjustment.previousValue,
+                new_value: adjustment.newValue,
+                was_auto_applied: adjustment.wasAutoApplied
+            });
+
+        if (error) throw error;
     } catch (error) {
         console.error('saveAdjustment error:', error);
     }
@@ -294,11 +369,22 @@ export const saveAdjustment = async (adjustment: HabitAdjustment) => {
 
 export const getAdjustmentsForHabit = async (habitId: string): Promise<HabitAdjustment[]> => {
     try {
-        const database = await ensureDatabase();
-        const rows = await database.getAllAsync<any>(
-            'SELECT * FROM habit_adjustments WHERE habitId = ? ORDER BY timestamp DESC', habitId
-        );
-        return rows.map(row => ({ ...row, wasAutoApplied: row.wasAutoApplied === 1 }));
+        const { data, error } = await supabase
+            .from('habit_adjustments')
+            .select('*')
+            .eq('habit_id', habitId)
+            .order('timestamp', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(row => ({
+            id: row.id,
+            habitId: row.habit_id,
+            timestamp: Number(row.timestamp),
+            type: row.type as any,
+            previousValue: row.previous_value,
+            newValue: row.new_value,
+            wasAutoApplied: row.was_auto_applied
+        }));
     } catch (error) {
         console.error('getAdjustmentsForHabit error:', error);
         return [];
