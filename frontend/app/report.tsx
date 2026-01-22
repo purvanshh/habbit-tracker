@@ -86,7 +86,13 @@ export default function StatisticsScreen() {
     const chartData = getChartData();
 
     // Stats Logic
-    const totalCompletions = selectedHabit ? allLogs.filter(l => l.habitId === selectedHabit.id && l.status === 'completed').length : 0;
+    const totalCompletions = selectedHabit
+        ? new Set(
+            allLogs
+                .filter(l => l.habitId === selectedHabit.id && l.status === 'completed')
+                .map(l => format(new Date(l.timestamp), 'yyyy-MM-dd'))
+        ).size
+        : 0;
     const currentStreak = selectedHabit?.streak || 0;
 
     return (
@@ -170,6 +176,8 @@ export default function StatisticsScreen() {
                                 borderRadius: 16,
                                 paddingRight: 40 // offset valid to show last label
                             }}
+                            segments={Math.max(1, Math.min(5, Math.ceil(Math.max(...chartData.datasets[0].data))))}
+                            fromZero
                             withInnerLines={false}
                             withOuterLines={false}
                         />

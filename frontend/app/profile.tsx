@@ -5,6 +5,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Stop, LinearGradient as SvgGradient } from 'react-native-svg';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
+import { useAuthStore } from '../src/store/useAuthStore';
 import { useHabitStore } from '../src/store/useHabitStore';
 
 function CircularStat({ value, maxValue, label, color }: { value: number; maxValue: number; label: string; color: 'cyan' | 'magenta' }) {
@@ -39,6 +40,7 @@ export default function Profile() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { habits } = useHabitStore();
+    const { signOut } = useAuthStore();
     const totalStreak = habits.reduce((acc, h) => acc + h.streak, 0);
     const maxStreak = habits.length > 0 ? Math.max(...habits.map(h => h.streak)) : 0;
 
@@ -71,15 +73,16 @@ export default function Profile() {
                         { icon: 'notifications', label: 'Notifications', color: '#6366F1', route: '/notifications' },
                         { icon: 'information-circle', label: 'App Info', color: '#A855F7', route: '/app-info' },
                         { icon: 'globe-outline', label: 'Contact Developer', color: '#10B981', action: () => Linking.openURL('https://purvanshsahu.site') },
+                        { icon: 'log-out-outline', label: 'Log Out', color: '#EF4444', action: () => signOut() },
                     ].map((item, i) => (
                         <TouchableOpacity
                             key={item.label}
                             onPress={() => item.action ? item.action() : item.route && router.push(item.route as any)}
-                            style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: i < 2 ? 1 : 0, borderBottomColor: '#222' }}
+                            style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: i < 3 ? 1 : 0, borderBottomColor: '#222' }}
                         >
                             <Ionicons name={item.icon as any} size={22} color={item.color} />
-                            <Text style={{ color: 'white', marginLeft: 16, flex: 1, fontSize: 15 }}>{item.label}</Text>
-                            <Ionicons name={item.route ? "chevron-forward" : "open-outline"} size={18} color="#6b7280" />
+                            <Text style={{ color: item.color === '#EF4444' ? '#EF4444' : 'white', marginLeft: 16, flex: 1, fontSize: 15 }}>{item.label}</Text>
+                            <Ionicons name={item.route ? "chevron-forward" : (item.icon === 'log-out-outline' ? "exit-outline" : "open-outline")} size={18} color={item.color === '#EF4444' ? '#EF4444' : "#6b7280"} />
                         </TouchableOpacity>
                     ))}
                 </Animated.View>
