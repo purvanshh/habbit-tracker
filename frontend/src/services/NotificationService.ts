@@ -34,6 +34,10 @@ export class NotificationService {
         // No-op in Expo Go
     }
 
+    static async sendBadgeEarned(_badgeName: string): Promise<void> {
+        // No-op in Expo Go
+    }
+
     static async cancelAll(): Promise<void> {
         // No-op in Expo Go
     }

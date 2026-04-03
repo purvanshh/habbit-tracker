@@ -1,6 +1,7 @@
 export type Frequency = 'daily' | 'custom' | 'weekly';
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday
 export type TimeWindow = 'morning' | 'afternoon' | 'evening' | 'anytime';
+export type EffortLevel = 'low' | 'medium' | 'high';
 
 export interface Habit {
     id: string;
@@ -11,12 +12,27 @@ export interface Habit {
     effortRating: number; // 1-5
     createdAt: number;
     streak: number;
+    longestStreak?: number;
+    lastCompletedDate?: string | null;
+    freezeTokens: number;
+    vacationMode?: boolean;
+    vacationUntil?: number;
     timeWindow: string;
     isPaused?: boolean;
     pausedUntil?: number;
     skipsUsedThisWeek: number;
     maxSkipsPerWeek: number; // Default 2
     lastSkipResetWeek: number; // Week number for reset tracking
+}
+
+export interface HabitTemplate {
+    id: string;
+    name: string;
+    category: 'sleep' | 'fitness' | 'mindfulness' | 'study';
+    icon: string;
+    defaultFrequency: number;
+    defaultTimeWindow?: string;
+    effortLevel?: EffortLevel;
 }
 
 export interface HabitLog {
@@ -60,6 +76,13 @@ export interface WeeklyReport {
     suggestions: AdjustmentSuggestion[];
 }
 
+export interface WeeklyHighlights {
+    totalHabitsCompleted: number;
+    completionRate: number;
+    longestStreak: number;
+    mostConsistentHabit: { habitId: string; habitName: string; successRate: number } | null;
+}
+
 export interface HabitMetric {
     habitId: string;
     habitName: string;
@@ -98,4 +121,22 @@ export interface AppNotification {
     type: 'info' | 'warning' | 'success';
     isRead: boolean;
     createdAt: number;
+}
+
+export interface Badge {
+    id: string;
+    name: string;
+    description: string;
+    condition: (input: BadgeConditionInput) => boolean;
+}
+
+export interface UserBadge {
+    badgeId: string;
+    unlockedAt: number;
+}
+
+export interface BadgeConditionInput {
+    report: WeeklyReport;
+    habits: Habit[];
+    logs: HabitLog[];
 }

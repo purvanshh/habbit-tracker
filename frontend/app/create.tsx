@@ -6,7 +6,10 @@ import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'reac
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
+import { TemplateChips } from '../src/components/TemplateChips';
+import { habitTemplates } from '../src/core/templates';
 import { DayOfWeek, Frequency } from '../src/core/types';
+import { templateDefaults, useTemplatePrefill } from '../src/hooks/useTemplatePrefill';
 import { useHabitStore } from '../src/store/useHabitStore';
 
 const HABIT_ICONS = [
@@ -57,6 +60,7 @@ export default function CreateHabit() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const addHabit = useHabitStore(s => s.addHabit);
+    const { prefillTemplate, quickAddTemplate, busyTemplateId } = useTemplatePrefill();
     const [name, setName] = useState('');
     const [icon, setIcon] = useState('barbell');
     const [frequency, setFrequency] = useState<Frequency>('daily');
@@ -84,12 +88,33 @@ export default function CreateHabit() {
             Alert.alert('Error', 'Please select at least one day'); return;
         }
 
-        const finalDays = frequency === 'daily' ? [0, 1, 2, 3, 4, 5, 6] as DayOfWeek[] :
-            frequency === 'weekly' ? [1] as DayOfWeek[] : // Default Monday
-                selectedDays;
+        const finalDays = templateDefaults.normalizeDaysForFrequency(frequency, selectedDays);
 
         await addHabit(name, icon, frequency, finalDays, effort, timeWindow);
         router.back();
+    };
+
+    const handleTemplateSelect = (templateId: string) => {
+        const template = habitTemplates.find(t => t.id === templateId);
+        if (!template) return;
+        const values = prefillTemplate(template);
+        setName(values.name);
+        setIcon(values.icon);
+        setFrequency(values.frequency);
+        setSelectedDays(values.selectedDays);
+        setEffort(values.effort);
+        setTimeWindow(values.timeWindow);
+    };
+
+    const handleQuickAdd = async (templateId: string) => {
+        const template = habitTemplates.find(t => t.id === templateId);
+        if (!template) return;
+        const result = await quickAddTemplate(template);
+        if (result.success) {
+            router.back();
+        } else if (result.error !== 'busy') {
+            Alert.alert('Could not create habit', 'Please try again.');
+        }
     };
 
     return (
@@ -102,6 +127,20 @@ export default function CreateHabit() {
             </Animated.View>
 
             <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
+                {/* Templates */}
+                <Animated.View entering={FadeInDown.delay(50).duration(350)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2 }}>TEMPLATES</Text>
+                        <Text style={{ color: '#9ca3af', fontSize: 12 }}>Tap to prefill or quick add</Text>
+                    </View>
+                    <TemplateChips
+                        templates={habitTemplates}
+                        onSelect={(t) => handleTemplateSelect(t.id)}
+                        onQuickAdd={(t) => handleQuickAdd(t.id)}
+                        busyTemplateId={busyTemplateId}
+                    />
+                </Animated.View>
+
                 {/* Icon Selection */}
                 <Animated.View entering={FadeInDown.delay(100).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                     <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 12 }}>CHOOSE ICON</Text>

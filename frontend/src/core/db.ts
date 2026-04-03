@@ -39,6 +39,11 @@ export const getHabits = async (): Promise<Habit[]> => {
                 timeWindow: row.time_window,
                 createdAt: new Date(row.created_at).getTime(),
                 streak: row.streak,
+                longestStreak: row.longest_streak ?? row.streak,
+                lastCompletedDate: row.last_completed_date || null,
+                freezeTokens: row.freeze_tokens ?? 3,
+                vacationMode: !!row.vacation_mode,
+                vacationUntil: row.vacation_until ? new Date(row.vacation_until).getTime() : undefined,
                 isPaused: row.is_paused,
                 pausedUntil: row.paused_until ? new Date(row.paused_until).getTime() : undefined,
                 skipsUsedThisWeek: row.skips_used_this_week,
@@ -70,6 +75,11 @@ export const addHabitToDB = async (habit: Habit) => {
                 time_window: habit.timeWindow,
                 created_at: new Date(habit.createdAt).toISOString(),
                 streak: habit.streak,
+                longest_streak: habit.longestStreak ?? habit.streak,
+                last_completed_date: habit.lastCompletedDate || null,
+                freeze_tokens: habit.freezeTokens ?? 3,
+                vacation_mode: habit.vacationMode ?? false,
+                vacation_until: habit.vacationUntil ? new Date(habit.vacationUntil).toISOString() : null,
                 is_paused: habit.isPaused,
                 paused_until: habit.pausedUntil ? new Date(habit.pausedUntil).toISOString() : null,
                 skips_used_this_week: habit.skipsUsedThisWeek || 0,
@@ -98,17 +108,36 @@ export const updateHabit = async (habitId: string, updates: Partial<Habit>) => {
         if (updates.isPaused !== undefined) dbUpdates.is_paused = updates.isPaused;
         if (updates.pausedUntil !== undefined) dbUpdates.paused_until = updates.pausedUntil ? new Date(updates.pausedUntil).toISOString() : null;
         if (updates.streak !== undefined) dbUpdates.streak = updates.streak;
+        if (updates.longestStreak !== undefined) dbUpdates.longest_streak = updates.longestStreak;
+        if (updates.lastCompletedDate !== undefined) dbUpdates.last_completed_date = updates.lastCompletedDate;
+        if (updates.freezeTokens !== undefined) dbUpdates.freeze_tokens = updates.freezeTokens;
+        if (updates.vacationMode !== undefined) dbUpdates.vacation_mode = updates.vacationMode;
+        if (updates.vacationUntil !== undefined) dbUpdates.vacation_until = updates.vacationUntil ? new Date(updates.vacationUntil).toISOString() : null;
         if (updates.skipsUsedThisWeek !== undefined) dbUpdates.skips_used_this_week = updates.skipsUsedThisWeek;
         if (updates.lastSkipResetWeek !== undefined) dbUpdates.last_skip_reset_week = updates.lastSkipResetWeek;
 
         // We handle updated_at automatically via DB trigger
 
-        const { error } = await supabase
-            .from('habits')
-            .update(dbUpdates)
-            .eq('id', habitId);
+        const attempt = async (payload: any) => {
+            const { error } = await supabase
+                .from('habits')
+                .update(payload)
+                .eq('id', habitId);
+            if (error) throw error;
+        };
 
-        if (error) throw error;
+        try {
+            await attempt(dbUpdates);
+        } catch (err: any) {
+            const message = err?.message || '';
+            if (err?.code === 'PGRST204' || message.includes('vacation_mode') || message.includes('freeze_tokens') || message.includes('longest_streak') || message.includes('last_completed_date')) {
+                // Retry with legacy-safe payload
+                const { vacation_mode, vacation_until, freeze_tokens, longest_streak, last_completed_date, ...legacy } = dbUpdates;
+                await attempt(legacy);
+            } else {
+                throw err;
+            }
+        }
     } catch (error) {
         console.error('updateHabit error:', error);
     }
@@ -137,14 +166,33 @@ export const logCompletionToDB = async (log: HabitLog) => {
     }
 };
 
-export const updateHabitStreak = async (habitId: string, streak: number) => {
+export const updateHabitStreak = async (habitId: string, streak: number, longestStreak?: number, lastCompletedDate?: string | null, freezeTokens?: number) => {
     try {
-        const { error } = await supabase
-            .from('habits')
-            .update({ streak })
-            .eq('id', habitId);
+        const updatePayload: any = { streak };
+        if (longestStreak !== undefined) updatePayload.longest_streak = longestStreak;
+        if (lastCompletedDate !== undefined) {
+            updatePayload.last_completed_date = lastCompletedDate ? new Date(lastCompletedDate).toISOString() : null;
+        }
+        if (freezeTokens !== undefined) updatePayload.freeze_tokens = freezeTokens;
 
-        if (error) throw error;
+        const attempt = async (payload: any) => {
+            const { error } = await supabase
+                .from('habits')
+                .update(payload)
+                .eq('id', habitId);
+            if (error) throw error;
+        };
+
+        try {
+            await attempt(updatePayload);
+        } catch (err: any) {
+            const message = err?.message || '';
+            if (err?.code === 'PGRST204' || message.includes('vacation_mode') || message.includes('freeze_tokens') || message.includes('longest_streak') || message.includes('last_completed_date')) {
+                await attempt({ streak });
+            } else {
+                throw err;
+            }
+        }
     } catch (error) {
         console.error('updateHabitStreak error:', error);
     }

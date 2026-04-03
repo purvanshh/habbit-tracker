@@ -14,6 +14,11 @@ CREATE TABLE IF NOT EXISTS habits (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     streak INTEGER DEFAULT 0,
+    longest_streak INTEGER DEFAULT 0,
+    last_completed_date TIMESTAMPTZ,
+    freeze_tokens INTEGER DEFAULT 3,
+    vacation_mode BOOLEAN DEFAULT FALSE,
+    vacation_until TIMESTAMPTZ,
     is_paused BOOLEAN DEFAULT FALSE,
     paused_until TIMESTAMPTZ,
     skips_used_this_week INTEGER DEFAULT 0,
@@ -63,6 +68,14 @@ CREATE TABLE IF NOT EXISTS habit_adjustments (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Unlocked achievement badges per user (see frontend/src/core/badgeService.ts)
+CREATE TABLE IF NOT EXISTS user_badges (
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    badge_id TEXT NOT NULL,
+    unlocked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, badge_id)
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_habits_user_id ON habits(user_id);
 CREATE INDEX IF NOT EXISTS idx_habits_created_at ON habits(created_at);
@@ -78,11 +91,14 @@ CREATE INDEX IF NOT EXISTS idx_weekly_reports_week_start ON weekly_reports(week_
 CREATE INDEX IF NOT EXISTS idx_habit_adjustments_user_id ON habit_adjustments(user_id);
 CREATE INDEX IF NOT EXISTS idx_habit_adjustments_habit_id ON habit_adjustments(habit_id);
 
+CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON user_badges(user_id);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weekly_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habit_adjustments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for habits
 CREATE POLICY "Users can view their own habits" ON habits
@@ -134,6 +150,16 @@ CREATE POLICY "Users can update their own habit adjustments" ON habit_adjustment
     FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own habit adjustments" ON habit_adjustments
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for user_badges
+CREATE POLICY "Users can view their own badges" ON user_badges
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own badges" ON user_badges
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own badges" ON user_badges
     FOR DELETE USING (auth.uid() = user_id);
 
 -- Create updated_at trigger function

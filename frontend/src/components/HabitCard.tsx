@@ -194,7 +194,7 @@ function HabitCardComponent({ habit, longestStreak = 0, onEdit, onDelete }: Habi
                         </View>
                         <View>
                             <Text style={{ color: '#6b7280', fontSize: 10, letterSpacing: 2, marginBottom: 4 }}>LONGEST STREAK</Text>
-                            <Text style={{ color: '#A855F7', fontSize: 24, fontWeight: '700' }}>{longestStreak || habit.streak}</Text>
+                            <Text style={{ color: '#A855F7', fontSize: 24, fontWeight: '700' }}>{(longestStreak || habit.longestStreak || habit.streak)}</Text>
                         </View>
                     </View>
 

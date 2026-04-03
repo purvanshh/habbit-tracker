@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Stop, LinearGradient as SvgGradient } from 'react-native-svg';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
+import { badgeCatalog } from '../src/core/badges';
 import { useAuthStore } from '../src/store/useAuthStore';
 import { useHabitStore } from '../src/store/useHabitStore';
 
@@ -39,20 +41,35 @@ function CircularStat({ value, maxValue, label, color }: { value: number; maxVal
 export default function Profile() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { habits } = useHabitStore();
+    const { habits, badges, loadBadges } = useHabitStore();
     const { signOut } = useAuthStore();
     const totalStreak = habits.reduce((acc, h) => acc + h.streak, 0);
     const maxStreak = habits.length > 0 ? Math.max(...habits.map(h => h.streak)) : 0;
 
+    useEffect(() => {
+        loadBadges();
+    }, [loadBadges]);
+
+    const unlockedBadges = badges
+        .map(b => {
+            const meta = badgeCatalog.find(c => c.id === b.badgeId);
+            if (!meta) return null;
+            return {
+                ...meta,
+                unlockedAt: b.unlockedAt,
+            };
+        })
+        .filter(Boolean) as Array<{ id: string; name: string; description: string; unlockedAt: number }>;
+
     return (
         <View style={{ flex: 1, backgroundColor: '#0A0A0A', paddingTop: insets.top }}>
-            <Animated.View entering={FadeInDown.duration(400)} style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
+            <Animated.View entering={FadeInDown.duration(200)} style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
                 <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>Profile</Text>
             </Animated.View>
 
             <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Profile Header */}
-                <Animated.View entering={FadeInDown.delay(100).duration(400)} style={{ backgroundColor: '#111', borderRadius: 20, padding: 32, alignItems: 'center', marginBottom: 24 }}>
+                <Animated.View entering={FadeInDown.delay(60).duration(200)} style={{ backgroundColor: '#111', borderRadius: 20, padding: 32, alignItems: 'center', marginBottom: 24 }}>
                     <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 2, borderColor: '#6366F1' }}>
                         <Ionicons name="person" size={40} color="#6366F1" />
                     </View>
@@ -61,14 +78,35 @@ export default function Profile() {
                 </Animated.View>
 
                 {/* Stats */}
-                <Animated.View entering={FadeInUp.delay(150).duration(400)} style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24 }}>
+                <Animated.View entering={FadeInUp.delay(90).duration(200)} style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24 }}>
                     <CircularStat value={habits.length} maxValue={10} label="HABITS" color="cyan" />
                     <CircularStat value={totalStreak} maxValue={100} label="STREAKS" color="magenta" />
                     <CircularStat value={maxStreak} maxValue={30} label="BEST" color="cyan" />
                 </Animated.View>
 
+                {/* Badges */}
+                <Animated.View entering={FadeInUp.delay(110).duration(200)} style={{ backgroundColor: '#111', borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: '#1f2937' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                        <Ionicons name="ribbon" size={18} color="#F59E0B" />
+                        <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', marginLeft: 8 }}>Badges</Text>
+                    </View>
+                    {unlockedBadges.length === 0 ? (
+                        <Text style={{ color: '#6b7280', fontSize: 13 }}>Earn badges by completing weekly reports and streaks.</Text>
+                    ) : (
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                            {unlockedBadges.map(badge => (
+                                <View key={badge.id} style={{ width: '48%', backgroundColor: '#0f172a', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#1f2937' }}>
+                                    <Text style={{ color: '#facc15', fontWeight: '700', marginBottom: 6 }}>{badge.name}</Text>
+                                    <Text style={{ color: '#9ca3af', fontSize: 12, marginBottom: 8 }}>{badge.description}</Text>
+                                    <Text style={{ color: '#6b7280', fontSize: 11 }}>Unlocked {new Date(badge.unlockedAt).toLocaleDateString()}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+                </Animated.View>
+
                 {/* Settings */}
-                <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ backgroundColor: '#111', borderRadius: 16, overflow: 'hidden' }}>
+                <Animated.View entering={FadeInUp.delay(120).duration(200)} style={{ backgroundColor: '#111', borderRadius: 16, overflow: 'hidden' }}>
                     {[
                         { icon: 'notifications', label: 'Notifications', color: '#6366F1', route: '/notifications' },
                         { icon: 'information-circle', label: 'App Info', color: '#A855F7', route: '/app-info' },

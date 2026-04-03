@@ -2,15 +2,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FloatingTabBar } from '../src/components/FloatingTabBar';
 import { HabitMetric, WeeklyReport } from '../src/core/types';
+import ViewShot from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
+import { computeWeeklyHighlights } from '../src/core/reportStats';
 import { useHabitStore } from '../src/store/useHabitStore';
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function HighlightPill({ label, value, color }: { label: string; value: string; color: string }) {
+    return (
+        <View style={{ flexBasis: '48%', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+            <Text style={{ color: '#9ca3af', fontSize: 11, marginBottom: 4 }}>{label}</Text>
+            <Text style={{ color, fontSize: 18, fontWeight: 'bold' }} numberOfLines={1}>{value}</Text>
+        </View>
+    );
+}
 
 function MetricCard({ metric, onViewHabit }: { metric: HabitMetric; onViewHabit: () => void }) {
     const getTrendIcon = () => {
@@ -84,6 +96,8 @@ export default function WeeklyReportScreen() {
     const [report, setReport] = useState<WeeklyReport | null>(latestReport);
     const [isGenerating, setIsGenerating] = useState(false);
     const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
+    const [isSharing, setIsSharing] = useState(false);
+    const viewShotRef = useRef<ViewShot>(null);
 
     useEffect(() => {
         if (!report) {
@@ -91,11 +105,34 @@ export default function WeeklyReportScreen() {
         }
     }, []);
 
+    const highlights = computeWeeklyHighlights(report, habits);
+
     const handleGenerateReport = async () => {
         setIsGenerating(true);
         const newReport = await generateWeeklyReport();
         setReport(newReport);
         setIsGenerating(false);
+    };
+
+    const handleShareCard = async () => {
+        if (!report || !viewShotRef.current) return;
+        try {
+            setIsSharing(true);
+            const uri = await viewShotRef.current.capture?.({ format: 'png', quality: 0.95 });
+            if (!uri) throw new Error('capture_failed');
+
+            const canShare = await Sharing.isAvailableAsync();
+            if (canShare) {
+                await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Weekly Highlights' });
+            } else {
+                Alert.alert('Sharing unavailable', 'Image saved to device.', [{ text: 'OK' }]);
+            }
+        } catch (error) {
+            console.error('shareCard error', error);
+            Alert.alert('Could not share', 'Please try again.');
+        } finally {
+            setIsSharing(false);
+        }
     };
 
     const getEmoji = (rate: number) => rate >= 70 ? '🎉' : rate >= 50 ? '📊' : '💪';
@@ -126,6 +163,27 @@ export default function WeeklyReportScreen() {
                             <Text style={{ color: '#6b7280', fontSize: 12, marginTop: 8 }}>
                                 {format(report.weekStart, 'MMM d')} - {format(report.weekEnd, 'MMM d, yyyy')}
                             </Text>
+                        </Animated.View>
+
+                        {/* Shareable Highlights Card */}
+                        <Animated.View entering={FadeInDown.delay(120).duration(400)} style={{ marginBottom: 20 }}>
+                            <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.95 }} style={{ borderRadius: 20, overflow: 'hidden' }}>
+                                <LinearGradient colors={['#0F172A', '#111827']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 20 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                        <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>Weekly Highlights</Text>
+                                        <Ionicons name="sparkles" size={18} color="#FACC15" />
+                                    </View>
+                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                                        <HighlightPill label="Total completions" value={String(highlights.totalHabitsCompleted)} color="#6366F1" />
+                                        <HighlightPill label="Completion rate" value={`${highlights.completionRate}%`} color="#22C55E" />
+                                        <HighlightPill label="Longest streak" value={`${highlights.longestStreak}d`} color="#F97316" />
+                                        <HighlightPill label="Most consistent" value={highlights.mostConsistentHabit ? highlights.mostConsistentHabit.habitName : 'N/A'} color="#A855F7" />
+                                    </View>
+                                </LinearGradient>
+                            </ViewShot>
+                            <TouchableOpacity disabled={isSharing} onPress={handleShareCard} style={{ marginTop: 12, backgroundColor: isSharing ? '#1f2937' : '#111', paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: '#222', alignItems: 'center' }}>
+                                <Text style={{ color: '#d1d5db', fontWeight: '600' }}>{isSharing ? 'Preparing...' : 'Share Highlights'}</Text>
+                            </TouchableOpacity>
                         </Animated.View>
 
                         {/* Quick Stats */}
