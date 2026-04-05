@@ -1,4 +1,4 @@
-import * as Network from 'expo-network';
+import { getNetworkStateAsync } from 'expo-network';
 import { addHabitToDB, deleteHabit, logCompletionToDB, updateHabit, updateHabitStreak } from '../core/db';
 import { SyncQueueItem, enqueue, dequeue, getQueue, incrementRetry, queueSize } from '../core/syncQueue';
 
@@ -16,6 +16,15 @@ let callbacks: SyncCallbacks = {};
 let pollInterval: NodeJS.Timeout | null = null;
 
 const backoff = (retryCount: number) => Math.min(MAX_DELAY_MS, BASE_DELAY_MS * Math.pow(2, retryCount));
+
+/** Avoid crashing when expo-network is unavailable (e.g. some web/Expo Go edge cases). */
+async function getNetworkStateSafe() {
+    try {
+        return await getNetworkStateAsync();
+    } catch {
+        return { isConnected: true, isInternetReachable: true as boolean | null };
+    }
+}
 
 const processItem = async (item: SyncQueueItem) => {
     const { type, payload } = item;
@@ -77,8 +86,8 @@ const flushQueue = async () => {
 };
 
 export const triggerSync = async () => {
-    const state = await Network.getNetworkStateAsync();
-    if (!state.isConnected || !state.isInternetReachable) {
+    const state = await getNetworkStateSafe();
+    if (!state.isConnected || state.isInternetReachable === false) {
         return;
     }
     return flushQueue();
@@ -88,16 +97,12 @@ export const startSyncService = (cbs: SyncCallbacks = {}) => {
     callbacks = cbs;
     if (pollInterval) return null;
 
-    // Simple, robust polling (8s) to avoid platform API differences
-    pollInterval = setInterval(async () => {
-        const state = await Network.getNetworkStateAsync();
-        if (state.isConnected && state.isInternetReachable) {
-            await triggerSync();
-        }
+    // Simple, robust polling (8s); avoids addNetworkStateListener (not reliable with import * as on all platforms)
+    pollInterval = setInterval(() => {
+        void triggerSync();
     }, 8000);
 
-    // Kick off once immediately
-    triggerSync();
+    void triggerSync();
     return null;
 };
 

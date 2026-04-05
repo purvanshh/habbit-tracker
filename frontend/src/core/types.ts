@@ -83,6 +83,36 @@ export interface WeeklyHighlights {
     mostConsistentHabit: { habitId: string; habitName: string; successRate: number } | null;
 }
 
+export interface InsightBestHabit {
+    habitId: string;
+    name: string;
+    successRate: number;
+    completions: number;
+}
+
+export interface InsightAtRisk {
+    habitId: string;
+    name: string;
+    successRate: number;
+    consecutiveFailures: number;
+}
+
+export interface InsightStreakHighlight {
+    habitId: string;
+    name: string;
+    currentStreak: number;
+    longestStreak: number;
+    freezeTokens: number;
+    needsAction: boolean;
+}
+
+export interface InsightFeedData {
+    bestHabit: InsightBestHabit | null;
+    atRisk: InsightAtRisk[];
+    streakHighlight: InsightStreakHighlight | null;
+    focus: string | null;
+}
+
 export interface HabitMetric {
     habitId: string;
     habitName: string;

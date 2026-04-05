@@ -3,11 +3,12 @@ import { addHabitToDB, deleteHabit, getAllLogs, getHabits, getLogsForHabit, getL
 import { HabitEngine } from '../core/HabitEngine';
 import { badgeCatalog } from '../core/badges';
 import { evaluateBadges, fetchUserBadges, saveNewBadges } from '../core/badgeService';
-import { AdjustmentSuggestion, DayOfWeek, Frequency, Habit, HabitAdjustment, HabitLog, UserBadge, WeeklyReport, getWeekNumber } from '../core/types';
+import { AdjustmentSuggestion, DayOfWeek, Frequency, Habit, HabitAdjustment, HabitLog, InsightFeedData, UserBadge, WeeklyReport, getWeekNumber } from '../core/types';
 import { NotificationService } from '../services/NotificationService';
 import { computeStreaks } from '../core/streaks';
 import { queueSize, subscribe as subscribeQueue } from '../core/syncQueue';
 import { runOrEnqueue, startSyncService } from '../services/syncService';
+import { computeInsights } from '../core/insights';
 
 interface HabitState {
     habits: Habit[];
@@ -17,6 +18,7 @@ interface HabitState {
     badges: UserBadge[];
     pendingSyncCount: number;
     lastSyncedAt?: number | null;
+    insights: InsightFeedData;
 
     initialize: () => Promise<void>;
     addHabit: (name: string, icon: string, frequency: Frequency, selectedDays: DayOfWeek[], effort: number, timeWindow: string) => Promise<void>;
@@ -31,6 +33,7 @@ interface HabitState {
     pauseHabit: (habitId: string, days: number) => Promise<void>;
     resumeHabit: (habitId: string) => Promise<void>;
     loadBadges: () => Promise<void>;
+    refreshInsights: () => Promise<void>;
 }
 
 export const useHabitStore = create<HabitState>((set, get) => ({
@@ -41,6 +44,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     badges: [],
     pendingSyncCount: 0,
     lastSyncedAt: null,
+    insights: { bestHabit: null, atRisk: [], streakHighlight: null, focus: null },
 
     initialize: async () => {
         try {
@@ -89,9 +93,13 @@ export const useHabitStore = create<HabitState>((set, get) => ({
 
             set({ habits: habitWithStreaks, badges, isLoading: false });
 
+            const insights = computeInsights(habitWithStreaks, allLogs);
+            set({ insights });
+
             await NotificationService.registerForPushNotifications();
             await NotificationService.scheduleHabitReminders(habits);
             await get().refreshSuggestions();
+            await get().refreshInsights();
         } catch (e) {
             console.error('Failed to initialize store:', e);
             set({ isLoading: false });
@@ -174,6 +182,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         });
 
         await get().refreshSuggestions();
+        await get().refreshInsights();
     },
 
     skipHabit: async (habitId) => {
@@ -233,6 +242,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
             } : h)
         });
 
+        await get().refreshInsights();
         return true;
     },
 
@@ -256,6 +266,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     refreshSuggestions: async () => {
         const { habits } = get();
         const suggestions: AdjustmentSuggestion[] = [];
+        const now = Date.now();
 
         for (const habit of habits) {
             const logs = await getLogsForHabit(habit.id);
@@ -268,6 +279,33 @@ export const useHabitStore = create<HabitState>((set, get) => ({
                 }
             }
             await NotificationService.sendHighRiskWarning(habit, logs);
+
+            // Smart rules: low adherence -> reduce frequency
+            const windowLogs = logs.filter(l => l.timestamp >= (now - 7 * 24 * 60 * 60 * 1000));
+            const completions = windowLogs.filter(l => l.status === 'completed').length;
+            const fails = windowLogs.filter(l => l.status === 'failed').length;
+            const attempts = completions + fails;
+            const successRate = attempts === 0 ? 1 : completions / attempts;
+            if (successRate < 0.4 && habit.frequency !== 'weekly') {
+                suggestions.push({
+                    habitId: habit.id,
+                    type: 'reduce_frequency',
+                    reason: 'Completion is low this week. Try fewer days to rebuild consistency.',
+                    suggestedAction: 'Reduce to 3 days/week',
+                });
+            }
+
+            // Smart rule: shift time window to best performing period
+            const timeStats = HabitEngine.analyzeTimeOfDaySuccess(logs);
+            const bestPeriod = HabitEngine.getBestTimePeriod(timeStats);
+            if (bestPeriod && bestPeriod !== habit.timeWindow) {
+                suggestions.push({
+                    habitId: habit.id,
+                    type: 'shift_time_window',
+                    reason: `You do better in the ${bestPeriod}. Consider switching.`,
+                    suggestedAction: `Move to ${bestPeriod}`,
+                });
+            }
         }
 
         set({ suggestions });
@@ -352,6 +390,14 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     loadBadges: async () => {
         const badges = await fetchUserBadges();
         set({ badges });
+    },
+
+    refreshInsights: async () => {
+        const habits = get().habits;
+        if (!habits.length) return;
+        const logs = await getAllLogs();
+        const insights = computeInsights(habits, logs);
+        set({ insights });
     },
 
     generateWeeklyReport: async () => {

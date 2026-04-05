@@ -95,7 +95,7 @@ export default function LoginScreen() {
                     </TouchableOpacity>
 
                     <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
-                        <Text style={{ color: '#9ca3af' }}>Don't have an account? </Text>
+                        <Text style={{ color: '#9ca3af' }}>{"Don't have an account? "}</Text>
                         <Link href="/signup" asChild>
                             <TouchableOpacity>
                                 <Text style={{ color: '#6366F1', fontWeight: 'bold' }}>Sign Up</Text>
