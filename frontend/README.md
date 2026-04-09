@@ -5,11 +5,14 @@ A modern, mobile-first habit tracker built with React Native and Expo.
 ## Features
 
 - **Habit Tracking**: Create, view, and complete daily habits easily.
-- **Visual Statistics**: Visualize your progress with interactive charts, streak counters, and heatmaps.
+- **Insights tab**: Visualize your progress with interactive charts, streak counters, and heatmaps.
 - **Smart Suggestions**: Intelligent feedback to help you stay clear and consistent with your goals.
 - **Notifications**: Stay on track with timely reminders.
 - **Dark Mode**: Sleek, battery-saving dark interface by default.
 - **Secure Auth**: Powered by Supabase Authentication.
+- **Streak Freeze (Vacation mode)**: Temporarily freeze streak decay while you’re away.
+- **Offline-first + syncing**: Keep tracking offline, then sync when you’re online again.
+- **Badges + sharing**: Earn badges/achievements and share them to social media platforms.
 
 ## Tech Stack
 

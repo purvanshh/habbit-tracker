@@ -20,9 +20,12 @@ root/
 ### Frontend (Mobile App)
 - **Modern UI/UX**: Built with React Native and NativeWind (Tailwind CSS) for a sleek, dark-themed interface.
 - **Habit Management**: Create, edit, and delete habits with customizable icons and frequencies.
-- **Visual Analytics**: Interactive charts and heatmaps to track progress and streaks.
+- **Insights tab**: Visual analytics (charts/heatmaps) to track progress, streaks, and trends.
 - **Gestures**: Swipe-to-complete interactions for a fluid user experience.
 - **Notifications**: Local notifications to remind you of your goals.
+- **Streak Freeze (Vacation mode)**: Pause streak decay while you’re away so you don’t lose progress.
+- **Offline-first + syncing**: Use the app offline and sync changes when you’re back online.
+- **Badges + sharing**: Earn user badges/achievements and share them to social platforms.
 
 ### Backend (API)
 - **Robust API**: RESTful endpoints served by Express.js.
